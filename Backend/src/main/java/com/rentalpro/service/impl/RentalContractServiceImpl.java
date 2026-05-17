@@ -51,12 +51,16 @@ public class RentalContractServiceImpl implements RentalContractService {
             throw new RuntimeException("Unit already has an active contract");
         }
 
-        // Verify tenant exists and is actually a tenant role
-        User tenant = userRepository.findById(request.getTenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant not found"));
+        // Find tenant by email - if not found, throw error with helpful message
+        User tenant = userRepository.findByEmail(request.getTenantEmail())
+                .orElseThrow(() -> new EntityNotFoundException(
+                    "Tenant with email '" + request.getTenantEmail() + "' not found. " +
+                    "Please ask the tenant to register first with this email address."
+                ));
 
+        // Verify user is actually a tenant
         if (tenant.getRole() != UserRole.TENANT) {
-            throw new RuntimeException("Selected user is not a tenant");
+            throw new RuntimeException("User with email '" + request.getTenantEmail() + "' is not registered as a tenant");
         }
 
         RentalContract contract = RentalContract.builder()
@@ -116,12 +120,15 @@ public class RentalContractServiceImpl implements RentalContractService {
             contract.setPropertyAddress(newUnit.getProperty().getAddress());
         }
 
-        // Verify new tenant if changed
-        if (!contract.getTenant().getId().equals(request.getTenantId())) {
-            User newTenant = userRepository.findById(request.getTenantId())
-                    .orElseThrow(() -> new EntityNotFoundException("Tenant not found"));
+        // Verify new tenant by email if changed
+        if (!contract.getTenant().getEmail().equals(request.getTenantEmail())) {
+            User newTenant = userRepository.findByEmail(request.getTenantEmail())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                        "Tenant with email '" + request.getTenantEmail() + "' not found. " +
+                        "Please ask the tenant to register first with this email address."
+                    ));
             if (newTenant.getRole() != UserRole.TENANT) {
-                throw new RuntimeException("Selected user is not a tenant");
+                throw new RuntimeException("User with email '" + request.getTenantEmail() + "' is not registered as a tenant");
             }
             contract.setTenant(newTenant);
         }

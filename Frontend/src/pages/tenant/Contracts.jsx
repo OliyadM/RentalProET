@@ -17,8 +17,8 @@ export default function TenantDashboard() {
   const [contracts, setContracts] = useState([]);
 
   useEffect(() => {
-    contractsAPI.getTenantContracts(user.id).then(setContracts);
-  }, [user.id]);
+    contractsAPI.getTenantContracts().then(setContracts);
+  }, []);
 
   const active = contracts.filter(c => c.status === "ACTIVE").length;
   const pending = contracts.filter(c => c.status === "PENDING_CONFIRMATION");

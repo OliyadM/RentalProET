@@ -21,7 +21,17 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const user = await authAPI.register(form);
+      // Map form fields to backend expected format
+      const registerData = {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phoneNumber: form.phone,  // Backend expects phoneNumber
+        password: form.password,
+        role: form.role,
+        subCityZone: form.role === "SUBCITY_STAFF" ? form.subCityZone : null,
+      };
+      const user = await authAPI.register(registerData);
       login(user);
       if (user.role === "LANDLORD") navigate("/landlord/dashboard");
       else if (user.role === "TENANT") navigate("/tenant/dashboard");

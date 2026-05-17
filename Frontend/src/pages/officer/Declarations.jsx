@@ -17,8 +17,8 @@ export default function OfficerDeclarations() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    if (tab === "ANOMALIES") declarationsAPI.getAnomalies().then(setDeclarations);
-    else declarationsAPI.getUnverified().then(setDeclarations);
+    if (tab === "ANOMALIES") declarationsAPI.getAnomalies("Bole").then(setDeclarations);
+    else declarationsAPI.getUnverified("Bole").then(setDeclarations);
   }, [tab]);
 
   const verify = async () => {

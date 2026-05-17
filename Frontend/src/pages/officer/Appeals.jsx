@@ -23,8 +23,8 @@ export default function OfficerAppeals() {
   const filtered = appeals.filter(a => a.status === tab);
 
   const resolve = async () => {
-    await appealsAPI.resolve(active.id, text, "Appeal upheld — action required");
-    setAppeals(prev => prev.map(a => a.id === active.id ? { ...a, status: "RESOLVED", resolutionDecision: text } : a));
+    await appealsAPI.resolve(active.id, "APPROVED", text);
+    setAppeals(prev => prev.map(a => a.id === active.id ? { ...a, status: "RESOLVED", resolutionDecision: "APPROVED", resolutionNotes: text } : a));
     setActive(null); setText("");
     setToast("Appeal resolved");
   };

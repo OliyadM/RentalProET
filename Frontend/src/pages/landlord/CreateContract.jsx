@@ -12,7 +12,7 @@ export default function CreateContract() {
   const [units, setUnits] = useState([]);
   const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
-    unitId: "", tenantName: "", tenantEmail: "", tenantPhone: "",
+    unitId: "", tenantEmail: "",
     startDate: "", endDate: "", monthlyRent: "", termsAndConditions: "",
   });
 
@@ -26,14 +26,40 @@ export default function CreateContract() {
   const set = f => e => setForm({ ...form, [f]: e.target.value });
 
   const submit = async (status) => {
-    const contract = {
-      ...form, landlordId: user.id, landlordName: `${user.firstName} ${user.lastName}`,
-      monthlyRent: Number(form.monthlyRent), currency: "ETB", status,
-      tenantId: "u3", propertyAddress: units.find(u => u.id === form.unitId)?.unitNumber || "",
-    };
-    await contractsAPI.create(contract);
-    setToast(status === "DRAFT" ? "Saved as draft" : "Contract submitted for confirmation");
-    setTimeout(() => navigate("/landlord/contracts"), 1500);
+    try {
+      // Validate required fields
+      if (!form.unitId || !form.tenantEmail || !form.startDate || !form.endDate || !form.monthlyRent) {
+        setToast("Please fill in all required fields");
+        return;
+      }
+
+      // Prepare contract data matching backend ContractRequest
+      const contractData = {
+        unitId: form.unitId,
+        tenantEmail: form.tenantEmail,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        monthlyRent: parseFloat(form.monthlyRent),
+        termsAndConditions: form.termsAndConditions || null,
+      };
+
+      // Create contract as DRAFT first
+      const response = await contractsAPI.create(contractData);
+      
+      // If user clicked "Submit for Confirmation", submit it
+      if (status === "PENDING_CONFIRMATION") {
+        await contractsAPI.submit(response.id);
+        setToast("Contract submitted for tenant confirmation");
+      } else {
+        setToast("Contract saved as draft");
+      }
+      
+      setTimeout(() => navigate("/landlord/contracts"), 1500);
+    } catch (error) {
+      console.error("Contract creation error:", error);
+      const errorMsg = error.response?.data?.message || error.message || "Failed to create contract";
+      setToast(errorMsg);
+    }
   };
 
   return (
@@ -52,23 +78,17 @@ export default function CreateContract() {
               {units.map(u => <option key={u.id} value={u.id}>{u.unitNumber} — {u.floorArea}m²</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tenant Name *</label>
-              <input value={form.tenantName} onChange={set("tenantName")} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tenant Phone *</label>
-              <input value={form.tenantPhone} onChange={set("tenantPhone")} required placeholder="09XXXXXXXX"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tenant Email *</label>
             <input type="email" value={form.tenantEmail} onChange={set("tenantEmail")} required
+              placeholder="tenant@example.com"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p className="text-xs text-gray-500 mt-1">
+              Tenant must be registered with this email address
+            </p>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
@@ -81,11 +101,13 @@ export default function CreateContract() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Rent (ETB) *</label>
             <input type="number" value={form.monthlyRent} onChange={set("monthlyRent")} required min="1"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Terms and Conditions</label>
             <textarea value={form.termsAndConditions} onChange={set("termsAndConditions")} rows={3}
@@ -93,8 +115,8 @@ export default function CreateContract() {
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           </div>
 
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
-            File upload integration coming soon — signed contract PDF upload will be required before final submission.
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+            💡 The tenant's name and contact details will be automatically retrieved from their registered account
           </div>
 
           <div className="flex gap-3 pt-2">

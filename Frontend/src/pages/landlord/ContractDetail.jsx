@@ -22,9 +22,11 @@ export default function LandlordContractDetail() {
   useEffect(() => {
     contractsAPI.getById(id).then(c => {
       setContract(c);
-      analyticsAPI.getBenchmark(c?.unitId).then(setBenchmark);
+      if (c?.propertyId) {
+        analyticsAPI.getBenchmark(c.propertyId).then(setBenchmark).catch(() => {});
+      }
     });
-    declarationsAPI.getByContract(id).then(setDeclarations);
+    declarationsAPI.getByContract(id).then(setDeclarations).catch(() => setDeclarations([]));
   }, [id]);
 
   if (!contract) return <Layout><p className="text-gray-400">Loading...</p></Layout>;

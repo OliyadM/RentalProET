@@ -18,11 +18,14 @@ export default function AddDeclaration() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const declaration = await declarationsAPI.create({
-      contractId, declarationPeriod: period + "-01", declaredRent: Number(rent),
-    });
-    setResult(declaration);
-    setLoading(false);
+    try {
+      const declaration = await declarationsAPI.create(contractId, period + "-01", parseFloat(rent));
+      setResult(declaration);
+    } catch (error) {
+      console.error("Declaration error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deviation = result ? (((result.declaredRent - result.aiBenchmarkRent) / result.aiBenchmarkRent) * 100).toFixed(1) : null;

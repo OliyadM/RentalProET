@@ -19,20 +19,30 @@ export default function TenantAppeals() {
   const [form, setForm] = useState({ contractId: "", appealType: "RENT_INCREASE", reason: "", evidenceUrls: "" });
 
   useEffect(() => {
-    appealsAPI.getMyAppeals(user.id).then(setAppeals);
-    contractsAPI.getTenantContracts(user.id).then(cs =>
+    appealsAPI.getMyAppeals().then(setAppeals);
+    contractsAPI.getTenantContracts().then(cs =>
       setContracts(cs.filter(c => c.status === "ACTIVE" || c.status === "UNDER_APPEAL"))
     );
-  }, [user.id]);
+  }, []);
 
   const set = f => e => setForm({ ...form, [f]: e.target.value });
 
   const submit = async () => {
-    const appeal = await appealsAPI.create({ ...form, tenantId: user.id, tenantName: `${user.firstName} ${user.lastName}` });
-    setAppeals(prev => [appeal, ...prev]);
-    setShowModal(false);
-    setForm({ contractId: "", appealType: "RENT_INCREASE", reason: "", evidenceUrls: "" });
-    setToast("Appeal submitted successfully");
+    try {
+      const appealData = {
+        contractId: form.contractId,
+        appealType: form.appealType,
+        reason: form.reason,
+        evidenceDocuments: form.evidenceUrls || null
+      };
+      const appeal = await appealsAPI.create(appealData);
+      setAppeals(prev => [appeal, ...prev]);
+      setShowModal(false);
+      setForm({ contractId: "", appealType: "RENT_INCREASE", reason: "", evidenceUrls: "" });
+      setToast("Appeal submitted successfully");
+    } catch (error) {
+      setToast("Failed to submit appeal");
+    }
   };
 
   return (

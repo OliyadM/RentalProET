@@ -1,5 +1,7 @@
 package com.rentalpro.model.dto.request;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -13,8 +15,9 @@ public class ContractRequest {
     @NotNull(message = "Unit ID is required")
     private UUID unitId;
 
-    @NotNull(message = "Tenant ID is required")
-    private UUID tenantId;
+    @NotBlank(message = "Tenant email is required")
+    @Email(message = "Invalid email format")
+    private String tenantEmail;
 
     @NotNull(message = "Start date is required")
     private LocalDate startDate;

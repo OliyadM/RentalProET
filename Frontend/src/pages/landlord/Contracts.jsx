@@ -18,8 +18,8 @@ export default function LandlordContracts() {
   const [tab, setTab] = useState("ALL");
 
   useEffect(() => {
-    contractsAPI.getLandlordContracts(user.id).then(setContracts);
-  }, [user.id]);
+    contractsAPI.getLandlordContracts().then(setContracts);
+  }, []);
 
   const filtered = tab === "ALL" ? contracts : contracts.filter(c => c.status === tab);
 
