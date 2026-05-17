@@ -1,0 +1,161 @@
+// Landlord Contract Detail will go here
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { AlertTriangle, TrendingUp, FileText } from "lucide-react";
+import Layout from "../../components/Layout";
+import StatusBadge from "../../components/StatusBadge";
+import Toast from "../../components/Toast";
+import { contractsAPI, declarationsAPI, analyticsAPI } from "../../services/api";
+
+function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
+function fmtDate(d) { if (!d) return "—"; const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
+function pct(a, b) { return (((a - b) / b) * 100).toFixed(1); }
+
+export default function LandlordContractDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [contract, setContract] = useState(null);
+  const [declarations, setDeclarations] = useState([]);
+  const [benchmark, setBenchmark] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    contractsAPI.getById(id).then(c => {
+      setContract(c);
+      analyticsAPI.getBenchmark(c?.unitId).then(setBenchmark);
+    });
+    declarationsAPI.getByContract(id).then(setDeclarations);
+  }, [id]);
+
+  if (!contract) return <Layout><p className="text-gray-400">Loading...</p></Layout>;
+
+  return (
+    <Layout>
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      <div className="max-w-3xl">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Contract Detail</h2>
+            <p className="text-gray-500 text-sm mt-1">{contract.propertyAddress}</p>
+          </div>
+          <StatusBadge status={contract.status} />
+        </div>
+
+        {/* Contract Info */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div><p className="text-gray-400 text-xs mb-1">Tenant</p><p className="font-medium">{contract.tenantName}</p></div>
+            <div><p className="text-gray-400 text-xs mb-1">Monthly Rent</p><p className="font-semibold text-primary">{fmt(contract.monthlyRent)}</p></div>
+            <div><p className="text-gray-400 text-xs mb-1">Payment</p><p className="font-medium">Monthly</p></div>
+            <div><p className="text-gray-400 text-xs mb-1">Start Date</p><p className="font-medium">{fmtDate(contract.startDate)}</p></div>
+            <div><p className="text-gray-400 text-xs mb-1">End Date</p><p className="font-medium">{fmtDate(contract.endDate)}</p></div>
+            <div><p className="text-gray-400 text-xs mb-1">Status</p><StatusBadge status={contract.status} /></div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            {contract.status === "DRAFT" && (
+              <button onClick={() => { contractsAPI.submit(id); setToast("Contract submitted"); setContract({...contract, status: "PENDING_CONFIRMATION"}); }}
+                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-900">
+                Submit for Confirmation
+              </button>
+            )}
+            {contract.status === "ACTIVE" && (
+              <button onClick={() => navigate(`/landlord/declarations/add/${id}`)}
+                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-900">
+                Add Declaration
+              </button>
+            )}
+            <button onClick={() => { setToast("PDF generation coming soon"); }}
+              className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
+              <FileText size={15} /> Download PDF
+            </button>
+          </div>
+        </div>
+
+        {/* AI Benchmark */}
+        {benchmark && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-5 border-l-4 border-accent">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp size={18} className="text-accent" />
+              <h3 className="font-semibold text-gray-800">AI Rent Benchmark</h3>
+              <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">Advisory only — not legally binding</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Min</p>
+                <p className="font-bold text-gray-800">{fmt(benchmark.minRent)}</p>
+              </div>
+              <div className="text-center p-3 bg-blue-50 rounded-lg border border-primary">
+                <p className="text-xs text-primary mb-1">Suggested</p>
+                <p className="font-bold text-primary text-lg">{fmt(benchmark.suggestedRent)}</p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Max</p>
+                <p className="font-bold text-gray-800">{fmt(benchmark.maxRent)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-gray-500">Confidence:</span>
+              <div className="flex-1 bg-gray-200 rounded-full h-2">
+                <div className="bg-success h-2 rounded-full" style={{ width: `${benchmark.confidenceScore * 100}%` }} />
+              </div>
+              <span className="font-medium">{Math.round(benchmark.confidenceScore * 100)}%</span>
+              <StatusBadge status={benchmark.marketTrend} />
+            </div>
+            <p className="text-xs text-gray-500 mt-3">{benchmark.reasoning}</p>
+          </div>
+        )}
+
+        {/* Declarations */}
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-800">Declarations ({declarations.length})</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th className="px-6 py-3 text-left">Period</th>
+                <th className="px-6 py-3 text-left">Declared</th>
+                <th className="px-6 py-3 text-left">Benchmark</th>
+                <th className="px-6 py-3 text-left">Deviation</th>
+                <th className="px-6 py-3 text-left">Anomaly</th>
+                <th className="px-6 py-3 text-left">Tax</th>
+                <th className="px-6 py-3 text-left">Verified</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {declarations.map(d => {
+                const dev = pct(d.declaredRent, d.aiBenchmarkRent);
+                return (
+                  <tr key={d.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{fmtDate(d.declarationPeriod)}</td>
+                    <td className="px-6 py-4 font-medium">{fmt(d.declaredRent)}</td>
+                    <td className="px-6 py-4 text-gray-500">{fmt(d.aiBenchmarkRent)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`font-medium ${Math.abs(dev) > 15 ? "text-danger" : Math.abs(dev) > 5 ? "text-accent" : "text-success"}`}>
+                        {dev > 0 ? "+" : ""}{dev}%
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {d.isAnomaly
+                        ? <span className="flex items-center gap-1 text-danger text-xs"><AlertTriangle size={12} /> Flagged</span>
+                        : <span className="text-success text-xs">Clean</span>}
+                    </td>
+                    <td className="px-6 py-4">{fmt(d.estimatedTax)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs font-medium ${d.isVerified ? "text-success" : "text-gray-400"}`}>
+                        {d.isVerified ? "Verified" : "Pending"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {declarations.length === 0 && (
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">No declarations yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Layout>
+  );
+}
