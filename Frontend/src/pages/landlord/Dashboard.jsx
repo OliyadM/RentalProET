@@ -7,12 +7,9 @@ import SummaryCard from "../../components/SummaryCard";
 import StatusBadge from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
 import { propertiesAPI, contractsAPI, unitsAPI } from "../../services/api";
+import { fmtDate } from "../../utils/dateUtils";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
-function fmtDate(d) {
-  const [y,m,day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
 
 export default function LandlordDashboard() {
   const { user } = useAuth();

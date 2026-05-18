@@ -5,11 +5,15 @@ import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
 import Modal from "../../components/Modal";
 import { declarationsAPI } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { fmtDate } from "../../utils/dateUtils";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
-function fmtDate(d) { if (!d) return "—"; const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
 
 export default function OfficerDeclarations() {
+  const { user } = useAuth();
+  const subCity = user?.subCityZone || "";
+
   const [declarations, setDeclarations] = useState([]);
   const [tab, setTab] = useState("ANOMALIES");
   const [toast, setToast] = useState(null);
@@ -17,9 +21,10 @@ export default function OfficerDeclarations() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    if (tab === "ANOMALIES") declarationsAPI.getAnomalies("Bole").then(setDeclarations);
-    else declarationsAPI.getUnverified("Bole").then(setDeclarations);
-  }, [tab]);
+    if (!subCity) return;
+    if (tab === "ANOMALIES") declarationsAPI.getAnomalies(subCity).then(setDeclarations);
+    else declarationsAPI.getUnverified(subCity).then(setDeclarations);
+  }, [tab, subCity]);
 
   const verify = async () => {
     await declarationsAPI.verify(verifying.id, notes);
@@ -56,6 +61,11 @@ export default function OfficerDeclarations() {
 
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Declarations</h2>
+        <p className="text-gray-500 text-sm mt-1">
+          {subCity
+            ? <>Showing data for <span className="font-medium text-primary">{subCity}</span></>
+            : <span className="text-accent">No sub-city assigned — contact an administrator</span>}
+        </p>
       </div>
 
       <div className="flex gap-2 mb-5">

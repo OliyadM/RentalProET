@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
 import Layout from "../../components/Layout";
 import { declarationsAPI } from "../../services/api";
+import { fmtDate } from "../../utils/dateUtils";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
 

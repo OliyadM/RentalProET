@@ -1,83 +1,105 @@
-// Tenant Contracts will go here
-// Officer Dashboard will go here
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Clock, AlertCircle } from "lucide-react";
 import Layout from "../../components/Layout";
-import SummaryCard from "../../components/SummaryCard";
 import StatusBadge from "../../components/StatusBadge";
-import { useAuth } from "../../context/AuthContext";
 import { contractsAPI } from "../../services/api";
+import { fmtDate } from "../../utils/dateUtils";
+
+const TABS = ["ALL", "PENDING_CONFIRMATION", "ACTIVE", "DRAFT", "UNDER_APPEAL", "TERMINATED"];
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
 
-export default function TenantDashboard() {
-  const { user } = useAuth();
+export default function TenantContracts() {
   const navigate = useNavigate();
   const [contracts, setContracts] = useState([]);
+  const [tab, setTab] = useState("ALL");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    contractsAPI.getTenantContracts().then(setContracts);
+    contractsAPI.getTenantContracts()
+      .then(setContracts)
+      .finally(() => setLoading(false));
   }, []);
 
-  const active = contracts.filter(c => c.status === "ACTIVE").length;
-  const pending = contracts.filter(c => c.status === "PENDING_CONFIRMATION");
-  const appeals = contracts.filter(c => c.status === "UNDER_APPEAL").length;
+  const filtered = tab === "ALL"
+    ? contracts
+    : contracts.filter(c => c.status === tab);
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Welcome, {user.firstName}</h2>
-        <p className="text-gray-500 text-sm mt-1">Your rental overview</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">My Contracts</h2>
+          <p className="text-gray-500 text-sm mt-1">{contracts.length} total contracts</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <SummaryCard label="Active Contracts" value={active} icon={FileText} color="text-success" />
-        <SummaryCard label="Pending Confirmations" value={pending.length} icon={Clock} color="text-accent" />
-        <SummaryCard label="My Appeals" value={appeals} icon={AlertCircle} color="text-danger" />
+      {/* Status filter tabs */}
+      <div className="flex gap-1 mb-5 overflow-x-auto">
+        {TABS.map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition
+              ${tab === t
+                ? "bg-primary text-white"
+                : "bg-white text-gray-600 border border-gray-200 hover:border-primary hover:text-primary"
+              }`}
+          >
+            {t.replace(/_/g, " ")}
+          </button>
+        ))}
       </div>
 
-      {pending.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm mb-6">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Clock size={16} className="text-accent" />
-            <h3 className="font-semibold text-gray-800">Action Required — Pending Confirmations</h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {pending.map(c => (
-              <div key={c.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">{c.propertyAddress}</p>
-                  <p className="text-sm text-gray-500">Monthly rent: {fmt(c.monthlyRent)}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => navigate(`/tenant/contracts/${c.id}`)}
-                    className="bg-success text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-green-700">
-                    Review & Confirm
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">All My Contracts</h3>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {contracts.map(c => (
-            <div key={c.id} onClick={() => navigate(`/tenant/contracts/${c.id}`)}
-              className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer">
-              <div>
-                <p className="font-medium text-gray-900">{c.propertyAddress}</p>
-                <p className="text-sm text-gray-500">{c.landlordName} · {fmt(c.monthlyRent)}/mo</p>
-              </div>
-              <StatusBadge status={c.status} />
-            </div>
-          ))}
-        </div>
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="px-6 py-12 text-center text-gray-400 text-sm">Loading contracts...</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th className="px-6 py-3 text-left">Property / Unit</th>
+                <th className="px-6 py-3 text-left">Landlord</th>
+                <th className="px-6 py-3 text-left">Monthly Rent</th>
+                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Start</th>
+                <th className="px-6 py-3 text-left">End</th>
+                <th className="px-6 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map(c => (
+                <tr key={c.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-gray-800 max-w-[200px] truncate">
+                    {c.propertyAddress}
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">{c.landlordName}</td>
+                  <td className="px-6 py-4 font-medium">{fmt(c.monthlyRent)}</td>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={c.status} />
+                  </td>
+                  <td className="px-6 py-4 text-gray-500">{fmtDate(c.startDate)}</td>
+                  <td className="px-6 py-4 text-gray-500">{fmtDate(c.endDate)}</td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => navigate(`/tenant/contracts/${c.id}`)}
+                      className="text-primary text-xs font-medium hover:underline"
+                    >
+                      {c.status === "PENDING_CONFIRMATION" ? "Review & Sign" : "View"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                    No {tab === "ALL" ? "" : tab.replace(/_/g, " ").toLowerCase() + " "}contracts found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </Layout>
   );

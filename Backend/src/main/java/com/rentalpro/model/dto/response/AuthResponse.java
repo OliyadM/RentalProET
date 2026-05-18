@@ -19,4 +19,5 @@ public class AuthResponse {
     private String firstName;
     private String lastName;
     private UserRole role;
+    private String subCityZone; // populated for SUBCITY_STAFF users; null for others
 }

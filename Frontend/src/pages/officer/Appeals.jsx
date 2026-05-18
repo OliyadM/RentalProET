@@ -5,8 +5,7 @@ import StatusBadge from "../../components/StatusBadge";
 import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
 import { appealsAPI } from "../../services/api";
-
-function fmtDate(d) { if (!d) return "—"; const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
+import { fmtDate } from "../../utils/dateUtils";
 
 export default function OfficerAppeals() {
   const [appeals, setAppeals] = useState([]);
@@ -17,21 +16,35 @@ export default function OfficerAppeals() {
   const [text, setText] = useState("");
 
   useEffect(() => {
-    appealsAPI.getAll().then(setAppeals);
+    // GET /appeals/pending is the only available officer endpoint.
+    // Resolved/rejected appeals are updated optimistically in local state after action.
+    appealsAPI.getPending().then(setAppeals);
   }, []);
 
   const filtered = appeals.filter(a => a.status === tab);
 
   const resolve = async () => {
     await appealsAPI.resolve(active.id, "APPROVED", text);
-    setAppeals(prev => prev.map(a => a.id === active.id ? { ...a, status: "RESOLVED", resolutionDecision: "APPROVED", resolutionNotes: text } : a));
+    setAppeals(prev =>
+      prev.map(a =>
+        a.id === active.id
+          ? { ...a, status: "RESOLVED", resolutionDecision: "APPROVED", resolutionNotes: text }
+          : a
+      )
+    );
     setActive(null); setText("");
     setToast("Appeal resolved");
   };
 
   const reject = async () => {
     await appealsAPI.reject(active.id, text);
-    setAppeals(prev => prev.map(a => a.id === active.id ? { ...a, status: "REJECTED", resolutionNotes: text } : a));
+    setAppeals(prev =>
+      prev.map(a =>
+        a.id === active.id
+          ? { ...a, status: "REJECTED", resolutionNotes: text }
+          : a
+      )
+    );
     setActive(null); setText("");
     setToast("Appeal rejected");
   };
@@ -63,7 +76,7 @@ export default function OfficerAppeals() {
       </div>
 
       <div className="flex gap-2 mb-5">
-        {["PENDING","RESOLVED","REJECTED"].map(t => (
+        {["PENDING", "RESOLVED", "REJECTED"].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition
               ${tab === t ? "bg-primary text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-primary hover:text-primary"}`}>
@@ -82,7 +95,7 @@ export default function OfficerAppeals() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs bg-blue-50 text-primary px-2 py-1 rounded-full font-medium">
-                  {a.appealType.replace(/_/g," ")}
+                  {a.appealType.replace(/_/g, " ")}
                 </span>
                 <StatusBadge status={a.status} />
               </div>

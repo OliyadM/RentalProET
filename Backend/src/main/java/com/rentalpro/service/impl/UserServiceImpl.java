@@ -58,6 +58,7 @@ public class UserServiceImpl implements UserService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole())
+                .subCityZone(user.getSubCityZone())
                 .build();
     }
 
@@ -81,6 +82,7 @@ public class UserServiceImpl implements UserService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole())
+                .subCityZone(user.getSubCityZone())
                 .build();
     }
 }
