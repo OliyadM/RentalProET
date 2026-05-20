@@ -56,6 +56,7 @@
 
 package com.rentalpro.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -72,6 +73,40 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * Handle Database Constraint Violations (Unique, Foreign Key, etc.)
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String message = "Operation failed due to data constraint violation";
+        String exceptionMessage = ex.getMessage();
+        
+        if (exceptionMessage != null) {
+            // Check for common constraint violations
+            if (exceptionMessage.contains("email") || exceptionMessage.contains("users_email_key")) {
+                message = "Email already registered";
+            } else if (exceptionMessage.contains("phone") || exceptionMessage.contains("users_phone_number_key")) {
+                message = "Phone number already registered";
+            } else if (exceptionMessage.contains("unique") || exceptionMessage.contains("duplicate")) {
+                message = "This record already exists";
+            } else if (exceptionMessage.contains("foreign key") || exceptionMessage.contains("violates foreign key constraint")) {
+                message = "Cannot delete this record because it is referenced by other data";
+            } else if (exceptionMessage.contains("not-null") || exceptionMessage.contains("null value")) {
+                message = "Required field is missing";
+            }
+        }
+        
+        // Log the actual error for debugging
+        System.err.println("DataIntegrityViolationException: " + exceptionMessage);
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        message,
+                        LocalDateTime.now()
+                ));
+    }
 
     /**
      * Handle Security Authorization Failures (403 Forbidden)
@@ -139,6 +174,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle IllegalStateException (400 Bad Request)
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        ex.getMessage(),
+                        LocalDateTime.now()
+                ));
+    }
+
+    /**
      * Catch-all for unexpected Server Errors (500 Internal Server Error)
      */
     @ExceptionHandler(Exception.class)
@@ -151,13 +199,6 @@ public class GlobalExceptionHandler {
                         "An unexpected internal server error occurred",
                         LocalDateTime.now()
                 ));
-    }
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Object> handleIllegalState(IllegalStateException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("message", ex.getMessage());
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
     public record ErrorResponse(int status, String message, LocalDateTime timestamp) {}
