@@ -186,3 +186,22 @@ export const analyticsAPI = {
     return response.data;
   },
 };
+
+// ─── Notifications ────────────────────────────────────────
+export const notificationsAPI = {
+  getMyNotifications: async () => {
+    const response = await apiClient.get("/notifications/my-notifications");
+    return response.data;
+  },
+  getUnreadCount: async () => {
+    const response = await apiClient.get("/notifications/unread-count");
+    return response.data.count;
+  },
+  markAsRead: async (id) => {
+    const response = await apiClient.put(`/notifications/${id}/read`);
+    return response.data;
+  },
+  markAllAsRead: async () => {
+    await apiClient.put("/notifications/read-all");
+  },
+};

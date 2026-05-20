@@ -12,6 +12,8 @@ import com.rentalpro.repository.AuditLogRepository;
 import com.rentalpro.repository.RentalContractRepository;
 import com.rentalpro.repository.RentalUnitRepository;
 import com.rentalpro.repository.UserRepository;
+import com.rentalpro.service.NotificationService;
+import com.rentalpro.model.enums.NotificationType;
 import com.rentalpro.service.RentalContractService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class RentalContractServiceImpl implements RentalContractService {
     private final RentalUnitRepository unitRepository;
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
+    private final NotificationService notificationService;
 
     @Override
     public ContractResponse createContract(ContractRequest request, UUID landlordId) {
@@ -96,6 +99,16 @@ public class RentalContractServiceImpl implements RentalContractService {
 
         RentalContract saved = contractRepository.save(contract);
         logAction("SUBMIT_CONTRACT", "RentalContract", saved.getId(), landlordId, "Submitted for tenant confirmation");
+
+        // Notify the tenant that a contract is waiting for their signature
+        String tenantMsg = String.format(
+                "A new rental contract for %s has been submitted and is awaiting your confirmation.",
+                saved.getPropertyAddress());
+        notificationService.send(
+                saved.getTenant().getId(),
+                NotificationType.CONTRACT_SUBMITTED,
+                tenantMsg,
+                saved.getId());
 
         return mapToResponse(saved);
     }
@@ -173,6 +186,17 @@ public class RentalContractServiceImpl implements RentalContractService {
         RentalContract saved = contractRepository.save(contract);
         logAction("CONFIRM_CONTRACT", "RentalContract", saved.getId(), tenantId, "Tenant confirmed contract");
 
+        // Notify the landlord that their tenant has signed
+        String tenantFullName = saved.getTenant().getFirstName() + " " + saved.getTenant().getLastName();
+        String landlordMsg = String.format(
+                "%s has confirmed and signed the contract for %s.",
+                tenantFullName, saved.getPropertyAddress());
+        notificationService.send(
+                saved.getLandlord().getId(),
+                NotificationType.CONTRACT_CONFIRMED,
+                landlordMsg,
+                saved.getId());
+
         return mapToResponse(saved);
     }
 
@@ -190,6 +214,17 @@ public class RentalContractServiceImpl implements RentalContractService {
 
         RentalContract saved = contractRepository.save(contract);
         logAction("REJECT_CONTRACT", "RentalContract", saved.getId(), tenantId, "Tenant rejected: " + reason);
+
+        // Notify the landlord that their tenant has rejected the contract
+        String tenantFullName = saved.getTenant().getFirstName() + " " + saved.getTenant().getLastName();
+        String landlordMsg = String.format(
+                "%s has rejected the contract for %s. Reason: %s",
+                tenantFullName, saved.getPropertyAddress(), reason);
+        notificationService.send(
+                saved.getLandlord().getId(),
+                NotificationType.CONTRACT_REJECTED,
+                landlordMsg,
+                saved.getId());
 
         return mapToResponse(saved);
     }

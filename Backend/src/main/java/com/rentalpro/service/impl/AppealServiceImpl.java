@@ -11,6 +11,8 @@ import com.rentalpro.repository.AppealRepository;
 import com.rentalpro.repository.RentalContractRepository;
 import com.rentalpro.repository.UserRepository;
 import com.rentalpro.service.AppealService;
+import com.rentalpro.service.NotificationService;
+import com.rentalpro.model.enums.NotificationType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class AppealServiceImpl implements AppealService {
     private final AppealRepository appealRepository;
     private final RentalContractRepository contractRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public AppealResponse createAppeal(AppealRequest request, UUID tenantId) {
@@ -65,7 +68,23 @@ public class AppealServiceImpl implements AppealService {
                 .build();
 
         contract.setStatus(ContractStatus.UNDER_APPEAL);
-        return mapToResponse(appealRepository.save(appeal));
+        Appeal saved = appealRepository.save(appeal);
+
+        // Fan-out: notify all officers in the property's sub-city
+        String subCity = contract.getRentalUnit().getProperty().getSubCity();
+        String tenantFullName = tenant.getFirstName() + " " + tenant.getLastName();
+        String officerMsg = String.format(
+                "New %s appeal submitted by %s for property at %s. Requires review.",
+                request.getAppealType().replace("_", " "),
+                tenantFullName,
+                contract.getPropertyAddress());
+        notificationService.sendToSubCityOfficers(
+                subCity,
+                NotificationType.APPEAL_SUBMITTED,
+                officerMsg,
+                saved.getId());
+
+        return mapToResponse(saved);
     }
 
     @Override
@@ -87,10 +106,22 @@ public class AppealServiceImpl implements AppealService {
         appeal.setReviewedBy(staff);
         appeal.setReviewedAt(LocalDateTime.now());
 
-        RentalContract contract = appeal.getContract();
-        contract.setStatus(ContractStatus.ACTIVE);
+        RentalContract resolveContract = appeal.getContract();
+        resolveContract.setStatus(ContractStatus.ACTIVE);
 
-        return mapToResponse(appealRepository.save(appeal));
+        Appeal resolvedAppeal = appealRepository.save(appeal);
+
+        // Notify the tenant that their appeal was resolved
+        String resolvedMsg = String.format(
+                "Your %s appeal has been resolved. Decision: %s.",
+                appeal.getAppealType().replace("_", " "), decision);
+        notificationService.send(
+                appeal.getTenant().getId(),
+                NotificationType.APPEAL_RESOLVED,
+                resolvedMsg,
+                resolvedAppeal.getId());
+
+        return mapToResponse(resolvedAppeal);
     }
 
     @Override
@@ -114,7 +145,19 @@ public class AppealServiceImpl implements AppealService {
         RentalContract contract = appeal.getContract();
         contract.setStatus(ContractStatus.ACTIVE);
 
-        return mapToResponse(appealRepository.save(appeal));
+        Appeal rejectedAppeal = appealRepository.save(appeal);
+
+        // Notify the tenant that their appeal was rejected
+        String rejectedMsg = String.format(
+                "Your %s appeal has been rejected. Reason: %s",
+                appeal.getAppealType().replace("_", " "), reason);
+        notificationService.send(
+                appeal.getTenant().getId(),
+                NotificationType.APPEAL_REJECTED,
+                rejectedMsg,
+                rejectedAppeal.getId());
+
+        return mapToResponse(rejectedAppeal);
     }
 
     @Override
