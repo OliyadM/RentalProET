@@ -31,6 +31,10 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already registered");
         }
 
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new RuntimeException("Phone number already registered");
+        }
+
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -58,6 +62,7 @@ public class UserServiceImpl implements UserService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole())
+                .subCityZone(user.getSubCityZone())
                 .build();
     }
 
@@ -81,6 +86,7 @@ public class UserServiceImpl implements UserService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .role(user.getRole())
+                .subCityZone(user.getSubCityZone())
                 .build();
     }
 }

@@ -6,10 +6,10 @@ import Layout from "../../components/Layout";
 import StatusBadge from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
 import { contractsAPI } from "../../services/api";
+import { fmtDate } from "../../utils/dateUtils";
 
 const TABS = ["ALL","DRAFT","PENDING_CONFIRMATION","ACTIVE","UNDER_APPEAL","TERMINATED"];
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
-function fmtDate(d) { const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
 
 export default function LandlordContracts() {
   const { user } = useAuth();

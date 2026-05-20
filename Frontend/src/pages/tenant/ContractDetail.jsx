@@ -7,9 +7,9 @@ import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import Modal from "../../components/Modal";
 import { contractsAPI, declarationsAPI } from "../../services/api";
+import { fmtDate } from "../../utils/dateUtils";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
-function fmtDate(d) { if (!d) return "—"; const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
 
 export default function TenantContractDetail() {
   const { id } = useParams();
@@ -27,17 +27,35 @@ export default function TenantContractDetail() {
   }, [id]);
 
   const confirm = async () => {
-    if (!signature.trim()) { setToast({ msg: "Please type your full name as signature", type: "error" }); return; }
-    await contractsAPI.confirm(id, signature);
-    setContract(prev => ({ ...prev, status: "ACTIVE", tenantSignature: signature }));
-    setToast({ msg: "Contract confirmed successfully", type: "success" });
+    if (!signature.trim()) {
+      setToast({ msg: "Please type your full name as signature", type: "error" });
+      return;
+    }
+    try {
+      const updated = await contractsAPI.confirm(id, signature);
+      setContract(updated);
+      setToast({ msg: "Contract confirmed successfully", type: "success" });
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to confirm contract. Please try again.";
+      setToast({ msg, type: "error" });
+    }
   };
 
   const reject = async () => {
-    await contractsAPI.reject(id, rejReason);
-    setContract(prev => ({ ...prev, status: "REJECTED", rejectionReason: rejReason }));
-    setShowReject(false);
-    setToast({ msg: "Contract rejected", type: "success" });
+    if (!rejReason.trim()) {
+      setToast({ msg: "Please provide a rejection reason", type: "error" });
+      return;
+    }
+    try {
+      const updated = await contractsAPI.reject(id, rejReason);
+      setContract(updated);
+      setShowReject(false);
+      setToast({ msg: "Contract rejected", type: "success" });
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to reject contract. Please try again.";
+      setToast({ msg, type: "error" });
+      setShowReject(false);
+    }
   };
 
   if (!contract) return <Layout><p className="text-gray-400">Loading...</p></Layout>;

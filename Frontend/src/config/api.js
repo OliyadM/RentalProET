@@ -65,6 +65,26 @@ apiClient.interceptors.response.use(
         console.error('❌ API Error:', status, error.config.url, data);
       }
 
+      // Extract user-friendly error message
+      let errorMessage = 'An error occurred';
+      
+      if (data) {
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (typeof data === 'object') {
+          // Handle validation errors (field: message format)
+          const validationErrors = Object.entries(data)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join(', ');
+          errorMessage = validationErrors || JSON.stringify(data);
+        }
+      }
+
+      // Attach formatted message to error
+      error.message = errorMessage;
+
       // Handle 401 Unauthorized - Auto logout
       if (status === 401) {
         console.warn('🔒 Unauthorized - Logging out');
@@ -79,21 +99,25 @@ apiClient.interceptors.response.use(
       // Handle 403 Forbidden
       if (status === 403) {
         console.error('🚫 Forbidden - Insufficient permissions');
+        error.message = 'Access denied. You do not have permission to perform this action.';
       }
 
       // Handle 404 Not Found
       if (status === 404) {
         console.error('🔍 Not Found:', error.config.url);
+        error.message = 'Resource not found';
       }
 
       // Handle 500 Server Error
       if (status >= 500) {
         console.error('🔥 Server Error:', status);
+        error.message = 'Server error. Please try again later.';
       }
 
     } else if (error.request) {
       // Request was made but no response received
       console.error('📡 Network Error - No response from server');
+      error.message = 'Network error. Please check your connection.';
     } else {
       // Something else happened
       console.error('⚠️ Request Setup Error:', error.message);

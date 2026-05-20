@@ -19,6 +19,23 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Frontend validation
+    if (form.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      setError("Phone number is required");
+      return;
+    }
+
+    if (form.role === "SUBCITY_STAFF" && !form.subCityZone) {
+      setError("Sub-city zone is required for government officers");
+      return;
+    }
+
     setLoading(true);
     try {
       // Map form fields to backend expected format
@@ -37,7 +54,7 @@ export default function Register() {
       else if (user.role === "TENANT") navigate("/tenant/dashboard");
       else navigate("/officer/dashboard");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -82,8 +99,9 @@ export default function Register() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input type="password" value={form.password} onChange={set("password")} required
+            <input type="password" value={form.password} onChange={set("password")} required minLength={6}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>

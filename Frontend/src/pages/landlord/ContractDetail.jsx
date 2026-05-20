@@ -6,9 +6,9 @@ import Layout from "../../components/Layout";
 import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import { contractsAPI, declarationsAPI, analyticsAPI } from "../../services/api";
+import { fmtDate } from "../../utils/dateUtils";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
-function fmtDate(d) { if (!d) return "—"; const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
 function pct(a, b) { return (((a - b) / b) * 100).toFixed(1); }
 
 export default function LandlordContractDetail() {
@@ -55,7 +55,17 @@ export default function LandlordContractDetail() {
           </div>
           <div className="mt-4 flex gap-2">
             {contract.status === "DRAFT" && (
-              <button onClick={() => { contractsAPI.submit(id); setToast("Contract submitted"); setContract({...contract, status: "PENDING_CONFIRMATION"}); }}
+              <button
+                onClick={async () => {
+                  try {
+                    const updated = await contractsAPI.submit(id);
+                    setContract(updated);
+                    setToast("Contract submitted for tenant confirmation");
+                  } catch (err) {
+                    const msg = err.response?.data?.message || "Failed to submit contract. Please try again.";
+                    setToast(msg);
+                  }
+                }}
                 className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-900">
                 Submit for Confirmation
               </button>

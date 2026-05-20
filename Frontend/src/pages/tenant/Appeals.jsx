@@ -7,8 +7,7 @@ import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
 import { useAuth } from "../../context/AuthContext";
 import { appealsAPI, contractsAPI } from "../../services/api";
-
-function fmtDate(d) { if (!d) return "—"; const [y,m,day] = d.split("-"); return `${day}/${m}/${y}`; }
+import { fmtDate } from "../../utils/dateUtils";
 
 export default function TenantAppeals() {
   const { user } = useAuth();
