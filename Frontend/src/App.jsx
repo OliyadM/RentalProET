@@ -24,6 +24,8 @@ import OfficerProperties from "./pages/officer/Properties";
 import OfficerDeclarations from "./pages/officer/Declarations";
 import OfficerAppeals from "./pages/officer/Appeals";
 
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" />;
@@ -56,17 +58,21 @@ export default function App() {
       <Route path="/tenant/contracts/:id" element={<ProtectedRoute roles={["TENANT"]}><TenantContractDetail /></ProtectedRoute>} />
       <Route path="/tenant/appeals" element={<ProtectedRoute roles={["TENANT"]}><TenantAppeals /></ProtectedRoute>} />
 
-      {/* Officer */}
-      <Route path="/officer/dashboard" element={<ProtectedRoute roles={["SUBCITY_STAFF", "ADMINISTRATOR"]}><OfficerDashboard /></ProtectedRoute>} />
-      <Route path="/officer/properties" element={<ProtectedRoute roles={["SUBCITY_STAFF", "ADMINISTRATOR"]}><OfficerProperties /></ProtectedRoute>} />
-      <Route path="/officer/declarations" element={<ProtectedRoute roles={["SUBCITY_STAFF", "ADMINISTRATOR"]}><OfficerDeclarations /></ProtectedRoute>} />
-      <Route path="/officer/appeals" element={<ProtectedRoute roles={["SUBCITY_STAFF", "ADMINISTRATOR"]}><OfficerAppeals /></ProtectedRoute>} />
+      {/* Officer — SUBCITY_STAFF only (ADMINISTRATOR has their own module) */}
+      <Route path="/officer/dashboard" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerDashboard /></ProtectedRoute>} />
+      <Route path="/officer/properties" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerProperties /></ProtectedRoute>} />
+      <Route path="/officer/declarations" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerDeclarations /></ProtectedRoute>} />
+      <Route path="/officer/appeals" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerAppeals /></ProtectedRoute>} />
+
+      {/* Administrator — isolated admin module */}
+      <Route path="/admin/dashboard" element={<ProtectedRoute roles={["ADMINISTRATOR"]}><AdminDashboard /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={
-        user?.role === "LANDLORD" ? <Navigate to="/landlord/dashboard" /> :
-        user?.role === "TENANT" ? <Navigate to="/tenant/dashboard" /> :
-        user?.role === "SUBCITY_STAFF" || user?.role === "ADMINISTRATOR" ? <Navigate to="/officer/dashboard" /> :
+        user?.role === "LANDLORD"      ? <Navigate to="/landlord/dashboard" /> :
+        user?.role === "TENANT"        ? <Navigate to="/tenant/dashboard" /> :
+        user?.role === "SUBCITY_STAFF" ? <Navigate to="/officer/dashboard" /> :
+        user?.role === "ADMINISTRATOR" ? <Navigate to="/admin/dashboard" /> :
         <Navigate to="/login" />
       } />
     </Routes>

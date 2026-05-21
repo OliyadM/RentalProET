@@ -19,9 +19,10 @@ export default function Login() {
     try {
       const user = await authAPI.login(email, password);
       login(user);
-      if (user.role === "LANDLORD") navigate("/landlord/dashboard");
-      else if (user.role === "TENANT") navigate("/tenant/dashboard");
-      else navigate("/officer/dashboard");
+      if (user.role === "LANDLORD")        navigate("/landlord/dashboard");
+      else if (user.role === "TENANT")     navigate("/tenant/dashboard");
+      else if (user.role === "ADMINISTRATOR") navigate("/admin/dashboard");
+      else                                 navigate("/officer/dashboard");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -84,9 +85,10 @@ export default function Login() {
 
         <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-500">
           <p className="font-medium mb-1">Demo accounts:</p>
-          <p>Landlord: abebe@gmail.com / 123456</p>
-          <p>Tenant: tigist@gmail.com / 123456</p>
-          <p>Officer: dawit@gmail.com / 123456</p>
+          <p>Landlord: test@example.com / password123</p>
+          <p>Tenant: tenant@test.com / password123</p>
+          <p>Officer: officer@test.com / password123</p>
+          <p>Admin: admin@rentalpro.et / Admin@123</p>
         </div>
       </div>
     </div>

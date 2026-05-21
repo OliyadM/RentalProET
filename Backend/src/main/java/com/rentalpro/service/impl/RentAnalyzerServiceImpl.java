@@ -6,6 +6,7 @@ import com.rentalpro.model.enums.PropertyType;
 import com.rentalpro.repository.MarketDataRepository;
 import com.rentalpro.repository.PropertyRepository;
 import com.rentalpro.repository.RentDeclarationRepository;
+import com.rentalpro.service.AdminService;
 import com.rentalpro.service.RentAnalyzerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class RentAnalyzerServiceImpl implements RentAnalyzerService {
     private final PropertyRepository propertyRepository;
     private final RentDeclarationRepository declarationRepository;
     private final MarketDataRepository marketDataRepository;
+    private final AdminService adminService;
 
     @Override
     public AIBenchmarkResponse calculateFairRent(UUID propertyId) {
@@ -47,8 +49,10 @@ public class RentAnalyzerServiceImpl implements RentAnalyzerService {
         // Calculate confidence based on data availability
         double confidence = calculateConfidence(property.getSubCity());
 
-        double minRent = baseRent * 0.85;
-        double maxRent = baseRent * 1.15;
+        // Use the configurable anomaly threshold as the benchmark band width
+        double band = adminService.getConfigEntity().getAnomalyThresholdPercentage();
+        double minRent = baseRent * (1 - band);
+        double maxRent = baseRent * (1 + band);
 
         return AIBenchmarkResponse.builder()
                 .suggestedRent(Math.round(baseRent * 100.0) / 100.0)

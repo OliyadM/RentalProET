@@ -5,6 +5,7 @@ import com.rentalpro.model.entity.RentDeclaration;
 import com.rentalpro.model.entity.RentalContract;
 import com.rentalpro.repository.RentDeclarationRepository;
 import com.rentalpro.repository.RentalContractRepository;
+import com.rentalpro.service.AdminService;
 import com.rentalpro.service.AuditLogService;
 import com.rentalpro.service.RentAnalyzerService;
 import com.rentalpro.service.RentDeclarationService;
@@ -25,6 +26,7 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
     private final RentalContractRepository contractRepository;
     private final RentAnalyzerService analyzerService;
     private final AuditLogService auditLogService;
+    private final AdminService adminService;
 
     @Override
     @Transactional
@@ -66,15 +68,18 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
         double suggestedRent = benchmark.getSuggestedRent();
         double deviation = Math.abs(declaredRent - suggestedRent) / suggestedRent;
 
-        boolean isAnomaly = deviation > 0.15;
-        double anomalyScore = Math.min(deviation / 0.3, 1.0);
+        // Read threshold dynamically from SystemConfig instead of hardcoded 0.15
+        double anomalyThreshold = adminService.getConfigEntity().getAnomalyThresholdPercentage();
+        boolean isAnomaly = deviation > anomalyThreshold;
+        double anomalyScore = Math.min(deviation / (anomalyThreshold * 2), 1.0);
 
         String reason = null;
         if (isAnomaly) {
-            if (declaredRent < suggestedRent * 0.85) {
+            double threshold = anomalyThreshold;
+            if (declaredRent < suggestedRent * (1 - threshold)) {
                 reason = String.format("Declared rent (%.2f) is %.1f%% below AI benchmark (%.2f). Possible under-declaration.",
                         declaredRent, deviation * 100, suggestedRent);
-            } else if (declaredRent > suggestedRent * 1.15) {
+            } else if (declaredRent > suggestedRent * (1 + threshold)) {
                 reason = String.format("Declared rent (%.2f) is %.1f%% above AI benchmark (%.2f). Verify luxury features.",
                         declaredRent, deviation * 100, suggestedRent);
             }
@@ -84,7 +89,10 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
         declaration.setAnomalyScore(anomalyScore);
         declaration.setIsAnomaly(isAnomaly);
         declaration.setAnomalyReason(reason);
-        declaration.setEstimatedTax(declaredRent * 0.10);
+
+        // Read tax rate dynamically from SystemConfig instead of hardcoded 0.10
+        double taxRate = adminService.getConfigEntity().getTaxRate();
+        declaration.setEstimatedTax(declaredRent * taxRate);
 
         return declarationRepository.save(declaration);
     }

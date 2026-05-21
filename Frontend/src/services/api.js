@@ -187,6 +187,34 @@ export const analyticsAPI = {
   },
 };
 
+// ─── Admin ────────────────────────────────────────────────
+export const adminAPI = {
+  // System Config
+  getConfig: async () => {
+    const response = await apiClient.get("/admin/config");
+    return response.data;
+  },
+  updateConfig: async (data) => {
+    const response = await apiClient.put("/admin/config", data);
+    return response.data;
+  },
+  // Officer Management
+  getOfficers: async () => {
+    const response = await apiClient.get("/admin/officers");
+    return response.data;
+  },
+  createOfficer: async (data) => {
+    const response = await apiClient.post("/admin/officers", data);
+    return response.data;
+  },
+  toggleOfficerStatus: async (id, active) => {
+    const response = await apiClient.put(`/admin/officers/${id}/status`, null, {
+      params: { active },
+    });
+    return response.data;
+  },
+};
+
 // ─── Notifications ────────────────────────────────────────
 export const notificationsAPI = {
   getMyNotifications: async () => {
