@@ -24,7 +24,7 @@ export default function Login() {
       else if (user.role === "ADMINISTRATOR") navigate("/admin/dashboard");
       else                                 navigate("/officer/dashboard");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
