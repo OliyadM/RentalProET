@@ -49,6 +49,21 @@ function resolveNavPath(notification, userRole) {
     return `/landlord/properties/${relatedEntityId}`;
   }
 
+  // Account lifecycle types
+  if (type === "PROFILE_PENDING_REVIEW") {
+    // Officers navigate to the pending profiles list
+    if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") {
+      return "/officer/profile-verification";
+    }
+    return null;
+  }
+
+  // ACCOUNT_CREATED, ACCOUNT_VERIFIED, ACCOUNT_REJECTED — informational,
+  // navigate to the user's own profile page when that route exists
+  if (["ACCOUNT_CREATED", "ACCOUNT_VERIFIED", "ACCOUNT_REJECTED"].includes(type)) {
+    return null; // update to "/profile" once the profile page is built
+  }
+
   return null;
 }
 

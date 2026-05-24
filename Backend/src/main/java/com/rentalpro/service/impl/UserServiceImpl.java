@@ -8,10 +8,13 @@ import com.rentalpro.model.dto.response.ProfileResponse;
 import com.rentalpro.model.entity.User;
 import com.rentalpro.model.enums.AccountStatus;
 import com.rentalpro.model.enums.EntityType;
+import com.rentalpro.model.enums.NotificationType;
 import com.rentalpro.repository.UserRepository;
 import com.rentalpro.security.JwtTokenProvider;
+import com.rentalpro.service.NotificationService;
 import com.rentalpro.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -33,6 +37,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -59,6 +64,18 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         userRepository.save(user);
+
+        // REQ-1: Welcome notification — wrapped so failure never blocks registration
+        try {
+            notificationService.send(
+                    user.getId(),
+                    NotificationType.ACCOUNT_CREATED,
+                    "Welcome to RentalPro ET! Your account has been created. " +
+                    "Please complete your profile to get started.",
+                    user.getId());
+        } catch (Exception e) {
+            log.warn("Failed to send ACCOUNT_CREATED notification to user {}: {}", user.getId(), e.getMessage());
+        }
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -146,6 +163,26 @@ public class UserServiceImpl implements UserService {
         // Update status to PENDING_VERIFICATION if profile is complete
         if (isProfileComplete(user)) {
             user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
+
+            // REQ-2: Fan-out to officers in the user's sub-city
+            // Guard: only fan out if the user has a sub-city assigned
+            if (user.getSubCityZone() != null && !user.getSubCityZone().isBlank()) {
+                try {
+                    String roleLabel = user.getRole().name().charAt(0)
+                            + user.getRole().name().substring(1).toLowerCase().replace("_", " ");
+                    String msg = String.format(
+                            "%s %s (%s) has submitted their profile for verification in %s.",
+                            user.getFirstName(), user.getLastName(), roleLabel, user.getSubCityZone());
+                    notificationService.sendToSubCityOfficers(
+                            user.getSubCityZone(),
+                            NotificationType.PROFILE_PENDING_REVIEW,
+                            msg,
+                            user.getId());
+                } catch (Exception e) {
+                    log.warn("Failed to send PROFILE_PENDING_REVIEW notification for user {}: {}",
+                            user.getId(), e.getMessage());
+                }
+            }
         }
 
         userRepository.save(user);
@@ -195,6 +232,30 @@ public class UserServiceImpl implements UserService {
         }
 
         userRepository.save(user);
+
+        // REQ-3 / REQ-4: Notify the user of the verification outcome
+        try {
+            if (request.getStatus() == AccountStatus.VERIFIED) {
+                notificationService.send(
+                        user.getId(),
+                        NotificationType.ACCOUNT_VERIFIED,
+                        "Your account has been verified! You now have full access to RentalPro ET.",
+                        user.getId());
+            } else if (request.getStatus() == AccountStatus.REJECTED) {
+                String msg = String.format(
+                        "Your account verification was rejected. Reason: %s. " +
+                        "Please update your profile and resubmit.",
+                        request.getRejectionReason());
+                notificationService.send(
+                        user.getId(),
+                        NotificationType.ACCOUNT_REJECTED,
+                        msg,
+                        user.getId());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to send verification outcome notification to user {}: {}",
+                    user.getId(), e.getMessage());
+        }
 
         return mapToProfileResponse(user);
     }

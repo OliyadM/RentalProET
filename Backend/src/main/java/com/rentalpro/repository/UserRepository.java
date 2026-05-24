@@ -2,6 +2,7 @@ package com.rentalpro.repository;
 
 import com.rentalpro.model.entity.User;
 import com.rentalpro.model.enums.AccountStatus;
+import com.rentalpro.model.enums.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,7 +15,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     boolean existsByPhoneNumber(String phoneNumber);
-    
+    boolean existsByRole(UserRole role);
+
     Optional<User> findByNationalIdNumber(String nationalIdNumber);
     Optional<User> findByTinNumber(String tinNumber);
     List<User> findByAccountStatus(AccountStatus accountStatus);

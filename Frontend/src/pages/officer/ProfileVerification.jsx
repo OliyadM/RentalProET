@@ -35,7 +35,8 @@ export default function ProfileVerification() {
       const data = await profileAPI.getPendingProfiles();
       setProfiles(data);
     } catch (error) {
-      setToast({ type: "error", message: error.message || "Failed to load profiles" });
+      const msg = error.response?.data?.message || error.message || "Failed to load profiles";
+      setToast({ type: "error", message: msg });
     } finally {
       setLoading(false);
     }
@@ -78,7 +79,8 @@ export default function ProfileVerification() {
       setSelectedProfile(null);
       loadPendingProfiles();
     } catch (error) {
-      setToast({ type: "error", message: error.message || "Failed to process verification" });
+      const msg = error.response?.data?.message || error.message || "Failed to process verification";
+      setToast({ type: "error", message: msg });
     } finally {
       setProcessing(false);
     }
