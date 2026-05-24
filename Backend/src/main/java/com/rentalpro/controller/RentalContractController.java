@@ -118,6 +118,30 @@ public class RentalContractController {
         return ResponseEntity.ok(contractService.terminateContract(contractId, reason, currentUser.getId()));
     }
 
+    // ==================== OFFICER ENDPOINTS ====================
+
+    @GetMapping("/pending-review")
+    @PreAuthorize("hasAnyRole('SUBCITY_STAFF', 'ADMINISTRATOR')")
+    public ResponseEntity<List<ContractResponse>> getPendingOfficerReview() {
+        return ResponseEntity.ok(contractService.getPendingOfficerReview());
+    }
+
+    @PostMapping("/{contractId}/approve")
+    @PreAuthorize("hasAnyRole('SUBCITY_STAFF', 'ADMINISTRATOR')")
+    public ResponseEntity<ContractResponse> approveContract(@PathVariable UUID contractId) {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(contractService.approveContract(contractId, currentUser.getId()));
+    }
+
+    @PostMapping("/{contractId}/reject-by-officer")
+    @PreAuthorize("hasAnyRole('SUBCITY_STAFF', 'ADMINISTRATOR')")
+    public ResponseEntity<ContractResponse> rejectContractByOfficer(
+            @PathVariable UUID contractId,
+            @RequestParam String reason) {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(contractService.rejectContractByOfficer(contractId, currentUser.getId(), reason));
+    }
+
     // ==================== UTILITY ====================
 
     private User getCurrentUser() {

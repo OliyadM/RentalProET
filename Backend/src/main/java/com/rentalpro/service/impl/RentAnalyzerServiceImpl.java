@@ -66,19 +66,21 @@ public class RentAnalyzerServiceImpl implements RentAnalyzerService {
 
     private double getDefaultRentForType(PropertyType type) {
         return switch (type) {
-            case COMMERCIAL -> 25000.0;
-            case MIXED_USE -> 18000.0;
-            case INDUSTRIAL -> 15000.0;
-            default -> 12000.0; // RESIDENTIAL
+            case COMMERCIAL_BUILDING -> 25000.0;
+            case MIXED_USE_BUILDING -> 18000.0;
+            case WAREHOUSE_INDUSTRIAL -> 15000.0;
+            case APARTMENT_BUILDING -> 14000.0;
+            default -> 12000.0; // HOUSE
         };
     }
 
     private double applyPropertyTypeAdjustment(double baseRent, PropertyType type) {
         return switch (type) {
-            case COMMERCIAL -> baseRent * 1.3;
-            case MIXED_USE -> baseRent * 1.1;
-            case INDUSTRIAL -> baseRent * 0.9;
-            default -> baseRent;
+            case COMMERCIAL_BUILDING -> baseRent * 1.3;
+            case MIXED_USE_BUILDING -> baseRent * 1.1;
+            case WAREHOUSE_INDUSTRIAL -> baseRent * 0.9;
+            case APARTMENT_BUILDING -> baseRent * 1.05;
+            default -> baseRent; // HOUSE
         };
     }
 

@@ -29,5 +29,10 @@ public class ContractRequest {
     @Positive(message = "Monthly rent must be positive")
     private Double monthlyRent;
 
-    private String termsAndConditions;
+    @NotBlank(message = "Payment frequency is required")
+    private String paymentFrequency; // Monthly, Quarterly, Annually
+
+    private String contractDocumentUrl; // Security contract PDF URL
+
+    private String additionalClauses; // Optional additional terms
 }

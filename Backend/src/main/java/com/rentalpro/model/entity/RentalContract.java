@@ -50,14 +50,19 @@ public class RentalContract {
     @Column(nullable = false)
     private Double monthlyRent;
 
+    private String paymentFrequency; // Monthly, Quarterly, Annually
+
     @Column(nullable = false)
     private String currency = "ETB";
+
+    private String contractDocumentUrl; // Security contract PDF
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ContractStatus status;
 
-    private String termsAndConditions;
+    @Column(length = 2000)
+    private String additionalClauses; // Replaces termsAndConditions
 
     private String tenantSignature;
 
@@ -66,6 +71,12 @@ public class RentalContract {
     private LocalDateTime tenantConfirmedAt;
 
     private LocalDateTime landlordSubmittedAt;
+
+    private LocalDateTime officerReviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
 
     private String rejectionReason;
 

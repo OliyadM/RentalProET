@@ -33,6 +33,11 @@ public class RentalUnitServiceImpl implements RentalUnitService {
             throw new RuntimeException("Not authorized to add units to this property");
         }
 
+        // Guard: Only ACTIVE properties can have units added
+        if (property.getStatus() != com.rentalpro.model.enums.PropertyStatus.ACTIVE) {
+            throw new RuntimeException("Units can only be added to active properties. This property is pending officer review.");
+        }
+
         unit.setProperty(property);
         RentalUnit saved = unitRepository.save(unit);
 

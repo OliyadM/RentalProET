@@ -1,12 +1,12 @@
 // Landlord Dashboard will go here
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building, FileText, CheckCircle, Clock, Plus } from "lucide-react";
+import { Building, FileText, CheckCircle, Clock, Plus, AlertCircle } from "lucide-react";
 import Layout from "../../components/Layout";
 import SummaryCard from "../../components/SummaryCard";
 import StatusBadge from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
-import { propertiesAPI, contractsAPI, unitsAPI } from "../../services/api";
+import { propertiesAPI, contractsAPI, unitsAPI, profileAPI } from "../../services/api";
 import { fmtDate } from "../../utils/dateUtils";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
@@ -17,8 +17,10 @@ export default function LandlordDashboard() {
   const [props, setProps] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [unitCount, setUnitCount] = useState(0);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
+    profileAPI.getMyProfile().then(setProfile).catch(() => {});
     propertiesAPI.getMyProperties(user.id).then(setProps);
     contractsAPI.getLandlordContracts(user.id).then(setContracts);
   }, [user.id]);
@@ -38,6 +40,27 @@ export default function LandlordDashboard() {
         <p className="text-gray-500 text-sm mt-1">Rental compliance overview</p>
       </div>
 
+      {/* Verification Status Banner */}
+      {profile && profile.accountStatus !== "VERIFIED" && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+          <AlertCircle size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-yellow-800">Account Verification Required</p>
+            <p className="text-sm text-yellow-700 mt-1">
+              {profile.accountStatus === "PENDING_PROFILE" && "Please complete your profile to register properties and create contracts."}
+              {profile.accountStatus === "PENDING_VERIFICATION" && "Your profile is under review. You'll be able to register properties once verified."}
+              {profile.accountStatus === "REJECTED" && `Your profile was rejected: ${profile.rejectionReason}. Please update and resubmit.`}
+            </p>
+            <button
+              onClick={() => navigate("/profile")}
+              className="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
+            >
+              {profile.accountStatus === "PENDING_PROFILE" ? "Complete Profile" : "View Profile"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <SummaryCard label="Total Properties" value={props.length} icon={Building} color="text-primary" />
         <SummaryCard label="Total Units" value={unitCount} icon={Building} color="text-primary" />
@@ -46,8 +69,10 @@ export default function LandlordDashboard() {
       </div>
 
       <div className="flex gap-3 mb-8">
-        <button onClick={() => navigate("/landlord/properties/add")}
-          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-900 transition">
+        <button 
+          onClick={() => navigate("/landlord/properties/add")}
+          disabled={profile?.accountStatus !== "VERIFIED"}
+          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
           <Plus size={16} /> Add New Property
         </button>
         <button onClick={() => navigate("/landlord/contracts")}

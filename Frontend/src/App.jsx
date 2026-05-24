@@ -26,6 +26,9 @@ import OfficerAppeals from "./pages/officer/Appeals";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
+import Profile from "./pages/Profile";
+import ProfileVerification from "./pages/officer/ProfileVerification";
+
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" />;
@@ -66,6 +69,12 @@ export default function App() {
 
       {/* Administrator — isolated admin module */}
       <Route path="/admin/dashboard" element={<ProtectedRoute roles={["ADMINISTRATOR"]}><AdminDashboard /></ProtectedRoute>} />
+
+      {/* Profile - accessible by all authenticated users */}
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+      {/* Profile Verification - Officer only */}
+      <Route path="/officer/profile-verification" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><ProfileVerification /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={

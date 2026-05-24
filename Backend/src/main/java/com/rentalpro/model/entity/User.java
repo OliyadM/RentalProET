@@ -1,5 +1,7 @@
 package com.rentalpro.model.entity;
 
+import com.rentalpro.model.enums.AccountStatus;
+import com.rentalpro.model.enums.EntityType;
 import com.rentalpro.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,6 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -55,6 +58,43 @@ public class User implements UserDetails {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    // KYC/Profile fields
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccountStatus accountStatus = AccountStatus.PENDING_PROFILE;
+
+    private LocalDate dateOfBirth;
+
+    @Column(length = 500)
+    private String residentialAddress;
+
+    @Column(unique = true)
+    private String nationalIdNumber;
+
+    private String nationalIdDocumentUrl;
+
+    @Column(unique = true)
+    private String tinNumber;
+
+    @Enumerated(EnumType.STRING)
+    private EntityType entityType = EntityType.INDIVIDUAL;
+
+    private String businessRegNumber;
+
+    private String businessRegDocumentUrl;
+
+    @Column(length = 1000)
+    private String verificationNotes;
+
+    @ManyToOne
+    @JoinColumn(name = "verified_by_id")
+    private User verifiedBy;
+
+    private LocalDateTime verifiedAt;
+
+    @Column(length = 500)
+    private String rejectionReason;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

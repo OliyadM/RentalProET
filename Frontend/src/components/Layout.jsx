@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   Home, Building, FileText, LogOut, BarChart2, AlertCircle,
-  Settings, Users, Globe,
+  Settings, Users, Globe, UserCircle,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
@@ -11,22 +11,27 @@ const navByRole = {
     { label: "Dashboard",   path: "/landlord/dashboard",  icon: Home },
     { label: "Properties",  path: "/landlord/properties", icon: Building },
     { label: "Contracts",   path: "/landlord/contracts",  icon: FileText },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
   TENANT: [
     { label: "Dashboard",   path: "/tenant/dashboard",    icon: Home },
     { label: "My Contracts",path: "/tenant/contracts",    icon: FileText },
     { label: "My Appeals",  path: "/tenant/appeals",      icon: AlertCircle },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
   SUBCITY_STAFF: [
     { label: "Dashboard",   path: "/officer/dashboard",   icon: Home },
     { label: "Properties",  path: "/officer/properties",  icon: Building },
     { label: "Declarations",path: "/officer/declarations",icon: BarChart2 },
     { label: "Appeals",     path: "/officer/appeals",     icon: AlertCircle },
+    { label: "Verify Profiles", path: "/officer/profile-verification", icon: Users },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
   ADMINISTRATOR: [
     { label: "System Settings", path: "/admin/dashboard",              icon: Settings },
     { label: "Manage Officers", path: "/admin/dashboard?tab=officers", icon: Users },
     { label: "Global Metrics",  path: "/admin/dashboard?tab=metrics",  icon: Globe },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
 };
 

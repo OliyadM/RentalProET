@@ -46,7 +46,7 @@ public class AppealServiceImpl implements AppealService {
         }
 
         boolean canAppeal = contract.getStatus() == ContractStatus.ACTIVE ||
-                contract.getStatus() == ContractStatus.CONFIRMED ||
+                contract.getStatus() == ContractStatus.PENDING_OFFICER_REVIEW ||
                 contract.getStatus() == ContractStatus.UNDER_APPEAL;
 
         if (!canAppeal) {

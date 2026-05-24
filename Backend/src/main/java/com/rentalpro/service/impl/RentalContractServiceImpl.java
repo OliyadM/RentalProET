@@ -41,6 +41,11 @@ public class RentalContractServiceImpl implements RentalContractService {
         User landlord = userRepository.findById(landlordId)
                 .orElseThrow(() -> new EntityNotFoundException("Landlord not found"));
 
+        // Guard: Only VERIFIED landlords can create contracts
+        if (landlord.getAccountStatus() != com.rentalpro.model.enums.AccountStatus.VERIFIED) {
+            throw new RuntimeException("Your account must be verified before you can create contracts. Please complete your profile and wait for verification.");
+        }
+
         RentalUnit unit = unitRepository.findById(request.getUnitId())
                 .orElseThrow(() -> new EntityNotFoundException("Rental unit not found"));
 
@@ -74,8 +79,10 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .monthlyRent(request.getMonthlyRent())
+                .paymentFrequency(request.getPaymentFrequency())
+                .contractDocumentUrl(request.getContractDocumentUrl())
+                .additionalClauses(request.getAdditionalClauses())
                 .currency("ETB")
-                .termsAndConditions(request.getTermsAndConditions())
                 .status(ContractStatus.DRAFT)
                 .build();
 
@@ -149,7 +156,9 @@ public class RentalContractServiceImpl implements RentalContractService {
         contract.setStartDate(request.getStartDate());
         contract.setEndDate(request.getEndDate());
         contract.setMonthlyRent(request.getMonthlyRent());
-        contract.setTermsAndConditions(request.getTermsAndConditions());
+        contract.setPaymentFrequency(request.getPaymentFrequency());
+        contract.setContractDocumentUrl(request.getContractDocumentUrl());
+        contract.setAdditionalClauses(request.getAdditionalClauses());
 
         RentalContract saved = contractRepository.save(contract);
         logAction("UPDATE_CONTRACT", "RentalContract", saved.getId(), landlordId, "Updated contract draft");
@@ -174,22 +183,18 @@ public class RentalContractServiceImpl implements RentalContractService {
             throw new RuntimeException("Contract is not pending confirmation");
         }
 
-        contract.setStatus(ContractStatus.CONFIRMED);
+        // NEW FLOW: After tenant confirms, send to officer for review
+        contract.setStatus(ContractStatus.PENDING_OFFICER_REVIEW);
         contract.setTenantSignature(signature);
         contract.setTenantConfirmedAt(LocalDateTime.now());
 
-        // Auto-transition to ACTIVE if start date is today or past
-        if (!contract.getStartDate().isAfter(java.time.LocalDate.now())) {
-            contract.setStatus(ContractStatus.ACTIVE);
-        }
-
         RentalContract saved = contractRepository.save(contract);
-        logAction("CONFIRM_CONTRACT", "RentalContract", saved.getId(), tenantId, "Tenant confirmed contract");
+        logAction("CONFIRM_CONTRACT", "RentalContract", saved.getId(), tenantId, "Tenant confirmed contract - pending officer review");
 
-        // Notify the landlord that their tenant has signed
+        // Notify the landlord that tenant has signed
         String tenantFullName = saved.getTenant().getFirstName() + " " + saved.getTenant().getLastName();
         String landlordMsg = String.format(
-                "%s has confirmed and signed the contract for %s.",
+                "%s has confirmed the contract for %s. Awaiting officer approval.",
                 tenantFullName, saved.getPropertyAddress());
         notificationService.send(
                 saved.getLandlord().getId(),
@@ -282,8 +287,8 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
 
         if (contract.getStatus() != ContractStatus.ACTIVE &&
-                contract.getStatus() != ContractStatus.CONFIRMED) {
-            throw new RuntimeException("Only ACTIVE or CONFIRMED contracts can be terminated");
+                contract.getStatus() != ContractStatus.PENDING_OFFICER_REVIEW) {
+            throw new RuntimeException("Only ACTIVE or PENDING_OFFICER_REVIEW contracts can be terminated");
         }
 
         contract.setStatus(ContractStatus.TERMINATED);
@@ -310,9 +315,11 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .startDate(contract.getStartDate())
                 .endDate(contract.getEndDate())
                 .monthlyRent(contract.getMonthlyRent())
+                .paymentFrequency(contract.getPaymentFrequency())
+                .contractDocumentUrl(contract.getContractDocumentUrl())
                 .currency(contract.getCurrency())
                 .status(contract.getStatus())
-                .termsAndConditions(contract.getTermsAndConditions())
+                .additionalClauses(contract.getAdditionalClauses())
                 .tenantSignature(contract.getTenantSignature())
                 .landlordSignature(contract.getLandlordSignature())
                 .tenantConfirmedAt(contract.getTenantConfirmedAt())
@@ -322,6 +329,69 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .updatedAt(contract.getUpdatedAt())
                 .version(contract.getVersion())
                 .build();
+    }
+
+    @Override
+    public ContractResponse approveContract(UUID contractId, UUID officerId) {
+        RentalContract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+
+        if (contract.getStatus() != ContractStatus.PENDING_OFFICER_REVIEW) {
+            throw new RuntimeException("Contract is not pending officer review");
+        }
+
+        User officer = userRepository.findById(officerId)
+                .orElseThrow(() -> new EntityNotFoundException("Officer not found"));
+
+        contract.setStatus(ContractStatus.ACTIVE);
+        contract.setReviewedBy(officer);
+        contract.setOfficerReviewedAt(LocalDateTime.now());
+
+        RentalContract saved = contractRepository.save(contract);
+        logAction("APPROVE_CONTRACT", "RentalContract", saved.getId(), officerId, "Officer approved contract");
+
+        // Notify landlord and tenant
+        String msg = String.format("Contract for %s has been approved and is now active.", saved.getPropertyAddress());
+        notificationService.send(saved.getLandlord().getId(), NotificationType.CONTRACT_CONFIRMED, msg, saved.getId());
+        notificationService.send(saved.getTenant().getId(), NotificationType.CONTRACT_CONFIRMED, msg, saved.getId());
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    public ContractResponse rejectContractByOfficer(UUID contractId, UUID officerId, String reason) {
+        RentalContract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+
+        if (contract.getStatus() != ContractStatus.PENDING_OFFICER_REVIEW) {
+            throw new RuntimeException("Contract is not pending officer review");
+        }
+
+        User officer = userRepository.findById(officerId)
+                .orElseThrow(() -> new EntityNotFoundException("Officer not found"));
+
+        contract.setStatus(ContractStatus.REJECTED);
+        contract.setReviewedBy(officer);
+        contract.setOfficerReviewedAt(LocalDateTime.now());
+        contract.setRejectionReason(reason);
+
+        RentalContract saved = contractRepository.save(contract);
+        logAction("REJECT_CONTRACT", "RentalContract", saved.getId(), officerId, "Officer rejected contract: " + reason);
+
+        // Notify landlord and tenant
+        String msg = String.format("Contract for %s has been rejected by officer. Reason: %s", saved.getPropertyAddress(), reason);
+        notificationService.send(saved.getLandlord().getId(), NotificationType.CONTRACT_REJECTED, msg, saved.getId());
+        notificationService.send(saved.getTenant().getId(), NotificationType.CONTRACT_REJECTED, msg, saved.getId());
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContractResponse> getPendingOfficerReview() {
+        return contractRepository.findByStatus(ContractStatus.PENDING_OFFICER_REVIEW).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     private void logAction(String action, String entityType, UUID entityId, UUID userId, String details) {

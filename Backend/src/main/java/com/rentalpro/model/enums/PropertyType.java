@@ -1,8 +1,9 @@
 package com.rentalpro.model.enums;
 
 public enum PropertyType {
-    RESIDENTIAL,
-    COMMERCIAL,
-    MIXED_USE,
-    INDUSTRIAL
+    HOUSE,
+    APARTMENT_BUILDING,
+    COMMERCIAL_BUILDING,
+    MIXED_USE_BUILDING,
+    WAREHOUSE_INDUSTRIAL
 }

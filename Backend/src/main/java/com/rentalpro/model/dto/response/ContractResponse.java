@@ -25,9 +25,11 @@ public class ContractResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private Double monthlyRent;
+    private String paymentFrequency;
+    private String contractDocumentUrl;
     private String currency;
     private ContractStatus status;
-    private String termsAndConditions;
+    private String additionalClauses;
     private String tenantSignature;
     private String landlordSignature;
     private LocalDateTime tenantConfirmedAt;

@@ -27,6 +27,11 @@ public class PropertyServiceImpl implements PropertyService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
+        // Guard: Only VERIFIED users can create properties
+        if (owner.getAccountStatus() != com.rentalpro.model.enums.AccountStatus.VERIFIED) {
+            throw new RuntimeException("Your account must be verified before you can register properties. Please complete your profile and wait for verification.");
+        }
+
         property.setOwner(owner);
         property.setIsVerified(false);
         return propertyRepository.save(property);

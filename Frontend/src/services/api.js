@@ -233,3 +233,28 @@ export const notificationsAPI = {
     await apiClient.put("/notifications/read-all");
   },
 };
+
+// ─── Profile ──────────────────────────────────────────────
+export const profileAPI = {
+  getMyProfile: async () => {
+    const response = await apiClient.get("/users/profile/me");
+    return response.data;
+  },
+  updateProfile: async (data) => {
+    const response = await apiClient.post("/users/profile", data);
+    return response.data;
+  },
+  getPendingProfiles: async () => {
+    const response = await apiClient.get("/users/profiles/pending");
+    return response.data;
+  },
+  verifyProfile: async (userId, status, verificationNotes, rejectionReason) => {
+    const response = await apiClient.post("/users/profiles/verify", {
+      userId,
+      status,
+      verificationNotes,
+      rejectionReason,
+    });
+    return response.data;
+  },
+};
