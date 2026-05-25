@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import Toast from "../components/Toast";
+import FileUpload from "../components/FileUpload";
 import { profileAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { User, Building, FileText, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
@@ -293,17 +294,13 @@ export default function Profile() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    National ID Document URL
-                  </label>
-                  <input
-                    type="url"
-                    name="nationalIdDocumentUrl"
+                  <FileUpload
+                    label="National ID Document"
                     value={form.nationalIdDocumentUrl}
-                    onChange={handleChange}
+                    onChange={(url) => setForm(prev => ({ ...prev, nationalIdDocumentUrl: url }))}
+                    folder="kyc/national-id"
                     disabled={!editing}
-                    placeholder="https://example.com/docs/national-id.pdf"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                    helperText="Upload a clear photo or scan of your national ID"
                   />
                 </div>
                 <div className="col-span-2">
@@ -379,17 +376,13 @@ export default function Profile() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Business Registration Document URL
-                    </label>
-                    <input
-                      type="url"
-                      name="businessRegDocumentUrl"
+                    <FileUpload
+                      label="Business Registration Document"
                       value={form.businessRegDocumentUrl}
-                      onChange={handleChange}
+                      onChange={(url) => setForm(prev => ({ ...prev, businessRegDocumentUrl: url }))}
+                      folder="kyc/business-reg"
                       disabled={!editing}
-                      placeholder="https://example.com/docs/business-reg.pdf"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                      helperText="Upload your business registration certificate"
                     />
                   </div>
                 </div>

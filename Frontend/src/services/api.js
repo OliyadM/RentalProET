@@ -258,3 +258,19 @@ export const profileAPI = {
     return response.data;
   },
 };
+
+// ─── File Upload ──────────────────────────────────────────
+export const filesAPI = {
+  upload: async (file, folder = "rentalpro") => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    
+    const response = await apiClient.post("/files/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data.url;
+  },
+};

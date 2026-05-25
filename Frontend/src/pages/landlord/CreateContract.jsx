@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
+import FileUpload from "../../components/FileUpload";
 import { contractsAPI, unitsAPI, propertiesAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
@@ -13,7 +14,10 @@ export default function CreateContract() {
   const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
     unitId: "", tenantEmail: "",
-    startDate: "", endDate: "", monthlyRent: "", termsAndConditions: "",
+    startDate: "", endDate: "", monthlyRent: "", 
+    paymentFrequency: "Monthly",
+    contractDocumentUrl: "",
+    additionalClauses: "",
   });
 
   useEffect(() => {
@@ -40,7 +44,9 @@ export default function CreateContract() {
         startDate: form.startDate,
         endDate: form.endDate,
         monthlyRent: parseFloat(form.monthlyRent),
-        termsAndConditions: form.termsAndConditions || null,
+        paymentFrequency: form.paymentFrequency,
+        contractDocumentUrl: form.contractDocumentUrl || null,
+        additionalClauses: form.additionalClauses || null,
       };
 
       // Create contract as DRAFT first
@@ -107,11 +113,29 @@ export default function CreateContract() {
             <input type="number" value={form.monthlyRent} onChange={set("monthlyRent")} required min="1"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Frequency *</label>
+            <select value={form.paymentFrequency} onChange={set("paymentFrequency")} required
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="Monthly">Monthly</option>
+              <option value="Quarterly">Quarterly</option>
+              <option value="Annually">Annually</option>
+            </select>
+          </div>
+
+          <FileUpload
+            label="Contract Document (Optional)"
+            value={form.contractDocumentUrl}
+            onChange={(url) => setForm({ ...form, contractDocumentUrl: url })}
+            folder="contracts"
+            helperText="Upload signed rental agreement document (optional)"
+          />
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Terms and Conditions</label>
-            <textarea value={form.termsAndConditions} onChange={set("termsAndConditions")} rows={3}
-              placeholder="Enter rental terms..."
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Clauses</label>
+            <textarea value={form.additionalClauses} onChange={set("additionalClauses")} rows={3}
+              placeholder="Enter any additional terms or special conditions..."
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           </div>
 

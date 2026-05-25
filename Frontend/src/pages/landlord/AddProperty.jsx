@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
 import MapPicker from "../../components/MapPicker";
+import FileUpload from "../../components/FileUpload";
 import { propertiesAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
@@ -128,12 +129,14 @@ export default function AddProperty() {
                 placeholder="e.g. 2010"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title Deed Document URL *</label>
-              <input value={form.titleDeedUrl} onChange={set("titleDeedUrl")} required
-                placeholder="https://example.com/docs/title-deed.pdf"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
+            <FileUpload
+              label="Title Deed Document"
+              value={form.titleDeedUrl}
+              onChange={(url) => setForm({ ...form, titleDeedUrl: url })}
+              folder="properties/title-deeds"
+              required
+              helperText="Upload your property title deed document (PDF or image)"
+            />
             <MapPicker
               latitude={form.latitude}
               longitude={form.longitude}
