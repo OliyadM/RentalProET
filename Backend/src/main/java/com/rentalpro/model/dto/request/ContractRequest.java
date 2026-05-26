@@ -32,6 +32,17 @@ public class ContractRequest {
     @NotBlank(message = "Payment frequency is required")
     private String paymentFrequency; // Monthly, Quarterly, Annually
 
+    // Ethiopian contract required fields
+    private Integer paymentDueDay = 1; // Day of month (1-31)
+    
+    private String paymentMethod = "BANK_TRANSFER"; // BANK_TRANSFER, CASH, MOBILE_MONEY, CHECK
+    
+    private Double securityDepositAmount;
+    
+    private Integer noticePeriodDays = 30; // Notice period for termination (days)
+    
+    private String renewalType = "RENEGOTIATE"; // AUTO_RENEW, RENEGOTIATE, FIXED_TERM
+
     private String contractDocumentUrl; // Security contract PDF URL
 
     private String additionalClauses; // Optional additional terms
