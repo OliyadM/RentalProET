@@ -241,6 +241,11 @@ export const adminAPI = {
     });
     return response.data;
   },
+  // Public — readable by any authenticated user (used by landlord contract form)
+  getContractDurationSetting: async () => {
+    const response = await apiClient.get("/admin/settings/contract-duration");
+    return response.data.minimumContractYears;
+  },
 };
 
 // ─── Notifications ────────────────────────────────────────

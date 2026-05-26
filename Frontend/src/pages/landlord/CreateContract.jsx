@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
 import FileUpload from "../../components/FileUpload";
-import { contractsAPI, unitsAPI, propertiesAPI } from "../../services/api";
+import { contractsAPI, unitsAPI, propertiesAPI, adminAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 export default function CreateContract() {
@@ -12,6 +12,8 @@ export default function CreateContract() {
   const navigate = useNavigate();
   const [units, setUnits] = useState([]);
   const [toast, setToast] = useState(null);
+  const [minContractYears, setMinContractYears] = useState(2); // default until fetched
+  const [dateError, setDateError] = useState("");
   const [form, setForm] = useState({
     unitId: "", tenantEmail: "",
     startDate: "", endDate: "", monthlyRent: "", 
@@ -30,15 +32,50 @@ export default function CreateContract() {
       const all = await Promise.all(ps.map(p => unitsAPI.getByProperty(p.id)));
       setUnits(all.flat());
     });
+    // Fetch the admin-configured minimum contract duration (defaults to 2 on failure)
+    adminAPI.getContractDurationSetting()
+      .then(years => setMinContractYears(years))
+      .catch(() => setMinContractYears(2));
   }, [user.id]);
 
   const set = f => e => setForm({ ...form, [f]: e.target.value });
+
+  // When start date changes, clear any date error and revalidate end date
+  const handleStartDateChange = (e) => {
+    const newStart = e.target.value;
+    setForm(prev => ({ ...prev, startDate: newStart, endDate: "" }));
+    setDateError("");
+  };
+
+  // Compute the earliest allowed end date based on start + minContractYears
+  const minEndDate = (() => {
+    if (!form.startDate) return "";
+    const d = new Date(form.startDate);
+    d.setFullYear(d.getFullYear() + minContractYears);
+    return d.toISOString().split("T")[0];
+  })();
+
+  const handleEndDateChange = (e) => {
+    const val = e.target.value;
+    setForm(prev => ({ ...prev, endDate: val }));
+    if (form.startDate && val && val < minEndDate) {
+      setDateError(`Contract must be at least ${minContractYears} year${minContractYears !== 1 ? "s" : ""}. Earliest end date: ${minEndDate}`);
+    } else {
+      setDateError("");
+    }
+  };
 
   const submit = async (status) => {
     try {
       // Validate required fields
       if (!form.unitId || !form.tenantEmail || !form.startDate || !form.endDate || !form.monthlyRent) {
         setToast("Please fill in all required fields");
+        return;
+      }
+
+      // Client-side minimum duration guard
+      if (minEndDate && form.endDate < minEndDate) {
+        setDateError(`Contract must be at least ${minContractYears} year${minContractYears !== 1 ? "s" : ""}. Earliest end date: ${minEndDate}`);
         return;
       }
 
@@ -108,13 +145,31 @@ export default function CreateContract() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-              <input type="date" value={form.startDate} onChange={set("startDate")} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <input
+                type="date"
+                value={form.startDate}
+                onChange={handleStartDateChange}
+                required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
-              <input type="date" value={form.endDate} onChange={set("endDate")} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <input
+                type="date"
+                value={form.endDate}
+                onChange={handleEndDateChange}
+                required
+                min={minEndDate || undefined}
+                className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary
+                  ${dateError ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+              />
+              {dateError && <p className="text-xs text-red-600 mt-1">{dateError}</p>}
+              {!dateError && form.startDate && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Min. {minContractYears} year{minContractYears !== 1 ? "s" : ""} — earliest: {minEndDate}
+                </p>
+              )}
             </div>
           </div>
           

@@ -48,6 +48,14 @@ public class SystemConfig {
     @Builder.Default
     private Double maxRentIncreaseCap = 0.10;
 
+    /**
+     * Minimum contract duration in years that landlords must meet.
+     * Default: 2 years.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer minimumContractYears = 2;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

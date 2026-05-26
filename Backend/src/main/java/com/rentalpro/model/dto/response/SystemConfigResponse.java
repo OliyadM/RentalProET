@@ -20,5 +20,7 @@ public class SystemConfigResponse {
     private Double anomalyThresholdPercent;
     /** Max rent increase cap as a percentage value for display: 0.10 → 10.0 */
     private Double maxRentIncreaseCapPercent;
+    /** Minimum contract duration in years. */
+    private Integer minimumContractYears;
     private LocalDateTime updatedAt;
 }

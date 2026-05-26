@@ -34,4 +34,13 @@ public class SystemConfigRequest {
     @DecimalMin(value = "0.0",   message = "Rent increase cap cannot be negative")
     @DecimalMax(value = "100.0", message = "Rent increase cap cannot exceed 100%")
     private Double maxRentIncreaseCapPercent;
+
+    /**
+     * Minimum contract duration in whole years.
+     * Accepted range: 1 – 10 years.
+     */
+    @NotNull(message = "Minimum contract duration is required")
+    @jakarta.validation.constraints.Min(value = 1, message = "Minimum contract duration must be at least 1 year")
+    @jakarta.validation.constraints.Max(value = 10, message = "Minimum contract duration cannot exceed 10 years")
+    private Integer minimumContractYears;
 }

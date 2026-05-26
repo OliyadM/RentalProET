@@ -15,6 +15,7 @@ import com.rentalpro.repository.UserRepository;
 import com.rentalpro.service.NotificationService;
 import com.rentalpro.model.enums.NotificationType;
 import com.rentalpro.service.RentalContractService;
+import com.rentalpro.service.AdminService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,8 @@ public class RentalContractServiceImpl implements RentalContractService {
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
     private final NotificationService notificationService;
+    private final AdminService adminService;
+    private final EmailService emailService;
 
     @Override
     public ContractResponse createContract(ContractRequest request, UUID landlordId) {
@@ -57,6 +60,16 @@ public class RentalContractServiceImpl implements RentalContractService {
         // Check if unit already has an active contract
         if (contractRepository.existsActiveContractByUnitId(request.getUnitId())) {
             throw new RuntimeException("Unit already has an active contract");
+        }
+
+        // Enforce minimum contract duration from system config
+        int minYears = adminService.getConfigEntity().getMinimumContractYears();
+        long months = java.time.temporal.ChronoUnit.MONTHS.between(
+                request.getStartDate(), request.getEndDate());
+        if (months < minYears * 12L) {
+            throw new RuntimeException(
+                    "Contract duration must be a minimum of " + minYears +
+                    " year" + (minYears == 1 ? "" : "s") + ".");
         }
 
         // Find tenant by email - if not found, throw error with helpful message

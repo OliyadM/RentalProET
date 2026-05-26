@@ -47,6 +47,7 @@ public class AdminServiceImpl implements AdminService {
         config.setTaxRate(request.getTaxRatePercent() / 100.0);
         config.setAnomalyThresholdPercentage(request.getAnomalyThresholdPercent() / 100.0);
         config.setMaxRentIncreaseCap(request.getMaxRentIncreaseCapPercent() / 100.0);
+        config.setMinimumContractYears(request.getMinimumContractYears());
 
         SystemConfig saved = configRepository.save(config);
         log.info("SystemConfig updated — taxRate={}% anomalyThreshold={}% rentCap={}%",
@@ -139,10 +140,10 @@ public class AdminServiceImpl implements AdminService {
     private SystemConfigResponse mapConfigToResponse(SystemConfig c) {
         return SystemConfigResponse.builder()
                 .id(c.getId())
-                // Convert fractions back to percentages for the frontend
                 .taxRatePercent(c.getTaxRate() * 100.0)
                 .anomalyThresholdPercent(c.getAnomalyThresholdPercentage() * 100.0)
                 .maxRentIncreaseCapPercent(c.getMaxRentIncreaseCap() * 100.0)
+                .minimumContractYears(c.getMinimumContractYears())
                 .updatedAt(c.getUpdatedAt())
                 .build();
     }
