@@ -1,34 +1,66 @@
-// Login page will go here
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { authAPI } from "../services/api";
 
+// ── Validation helpers ────────────────────────────────────────────────────────
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validate(email, password) {
+  const errs = {};
+  if (!email.trim())               errs.email    = "Email is required";
+  else if (!EMAIL_RE.test(email))  errs.email    = "Enter a valid email address";
+  if (!password)                   errs.password = "Password is required";
+  else if (password.length < 6)   errs.password = "Password must be at least 6 characters";
+  return errs;
+}
+
+// ── Field error helper ────────────────────────────────────────────────────────
+function FieldError({ msg }) {
+  if (!msg) return null;
+  return <p className="text-xs text-red-600 mt-1">{msg}</p>;
+}
+
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors]     = useState({});
+  const [serverError, setServerError] = useState("");
+  const [loading, setLoading]   = useState(false);
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+
+  // Validate a single field on blur so errors appear as the user leaves each input
+  const blurValidate = (field) => {
+    const next = validate(email, password);
+    setErrors(prev => ({ ...prev, [field]: next[field] }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setServerError("");
+    const errs = validate(email, password);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setErrors({});
     setLoading(true);
     try {
-      const user = await authAPI.login(email, password);
+      const user = await authAPI.login(email.trim(), password);
       login(user);
-      if (user.role === "LANDLORD")        navigate("/landlord/dashboard");
-      else if (user.role === "TENANT")     navigate("/tenant/dashboard");
+      if (user.role === "LANDLORD")           navigate("/landlord/dashboard");
+      else if (user.role === "TENANT")        navigate("/tenant/dashboard");
       else if (user.role === "ADMINISTRATOR") navigate("/admin/dashboard");
-      else                                 navigate("/officer/dashboard");
+      else                                    navigate("/officer/dashboard");
     } catch (err) {
-      setError(err.message || "Login failed. Please check your credentials.");
+      const data = err.response?.data;
+      setServerError(data?.message || "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  const inputClass = (field) =>
+    `w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+     ${errors[field] ? "border-red-400 bg-red-50" : "border-gray-300"}`;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -41,34 +73,45 @@ export default function Login() {
           <p className="text-gray-500 text-sm mt-1">Rental Compliance Management System</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {serverError && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-              {error}
+              {serverError}
             </div>
           )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address <span className="text-red-500">*</span>
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              onBlur={() => blurValidate("email")}
               placeholder="you@example.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              autoComplete="email"
+              className={inputClass("email")}
             />
+            <FieldError msg={errors.email} />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password <span className="text-red-500">*</span>
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              onBlur={() => blurValidate("password")}
               placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              autoComplete="current-password"
+              className={inputClass("password")}
             />
+            <FieldError msg={errors.password} />
           </div>
+
           <button
             type="submit"
             disabled={loading}
