@@ -80,6 +80,11 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .endDate(request.getEndDate())
                 .monthlyRent(request.getMonthlyRent())
                 .paymentFrequency(request.getPaymentFrequency())
+                .paymentDueDay(request.getPaymentDueDay() != null ? request.getPaymentDueDay() : 1)
+                .paymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "BANK_TRANSFER")
+                .securityDepositAmount(request.getSecurityDepositAmount())
+                .noticePeriodDays(request.getNoticePeriodDays() != null ? request.getNoticePeriodDays() : 30)
+                .renewalType(request.getRenewalType() != null ? request.getRenewalType() : "RENEGOTIATE")
                 .contractDocumentUrl(request.getContractDocumentUrl())
                 .additionalClauses(request.getAdditionalClauses())
                 .currency("ETB")
@@ -157,6 +162,11 @@ public class RentalContractServiceImpl implements RentalContractService {
         contract.setEndDate(request.getEndDate());
         contract.setMonthlyRent(request.getMonthlyRent());
         contract.setPaymentFrequency(request.getPaymentFrequency());
+        contract.setPaymentDueDay(request.getPaymentDueDay() != null ? request.getPaymentDueDay() : 1);
+        contract.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "BANK_TRANSFER");
+        contract.setSecurityDepositAmount(request.getSecurityDepositAmount());
+        contract.setNoticePeriodDays(request.getNoticePeriodDays() != null ? request.getNoticePeriodDays() : 30);
+        contract.setRenewalType(request.getRenewalType() != null ? request.getRenewalType() : "RENEGOTIATE");
         contract.setContractDocumentUrl(request.getContractDocumentUrl());
         contract.setAdditionalClauses(request.getAdditionalClauses());
 
@@ -316,6 +326,11 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .endDate(contract.getEndDate())
                 .monthlyRent(contract.getMonthlyRent())
                 .paymentFrequency(contract.getPaymentFrequency())
+                .paymentDueDay(contract.getPaymentDueDay())
+                .paymentMethod(contract.getPaymentMethod())
+                .securityDepositAmount(contract.getSecurityDepositAmount())
+                .noticePeriodDays(contract.getNoticePeriodDays())
+                .renewalType(contract.getRenewalType())
                 .contractDocumentUrl(contract.getContractDocumentUrl())
                 .currency(contract.getCurrency())
                 .status(contract.getStatus())

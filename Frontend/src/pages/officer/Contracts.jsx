@@ -117,57 +117,94 @@ export default function OfficerContracts() {
       {/* View Details Modal */}
       {viewing && (
         <Modal title="Contract Details" onClose={() => setViewing(null)}>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-gray-500 text-xs">Property</p>
+          <div className="space-y-4 text-sm max-h-[70vh] overflow-y-auto">
+            {/* Property */}
+            <div className="pb-3 border-b border-gray-100">
+              <p className="text-gray-500 text-xs uppercase mb-2">Property</p>
               <p className="font-medium">{viewing.propertyName}</p>
               <p className="text-gray-600 text-xs">{viewing.propertyAddress}</p>
+              <p className="text-gray-600 text-xs mt-1">Unit: {viewing.unitNumber}</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-gray-500 text-xs">Unit</p>
-                <p className="font-medium">{viewing.unitNumber}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs">Monthly Rent</p>
-                <p className="font-medium">{viewing.monthlyRent} ETB</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-gray-500 text-xs">Start Date</p>
-                <p className="font-medium">{fmtDate(viewing.startDate)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs">End Date</p>
-                <p className="font-medium">{fmtDate(viewing.endDate)}</p>
+
+            {/* Parties */}
+            <div className="pb-3 border-b border-gray-100">
+              <p className="text-gray-500 text-xs uppercase mb-2">Parties</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-500 text-xs">Landlord</p>
+                  <p className="font-medium">{viewing.landlordName}</p>
+                  <p className="text-gray-600 text-xs">{viewing.landlordEmail}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Tenant</p>
+                  <p className="font-medium">{viewing.tenantName}</p>
+                  <p className="text-gray-600 text-xs">{viewing.tenantEmail}</p>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-gray-500 text-xs">Landlord</p>
-              <p className="font-medium">{viewing.landlordName}</p>
-              <p className="text-gray-600 text-xs">{viewing.landlordEmail}</p>
+
+            {/* Term */}
+            <div className="pb-3 border-b border-gray-100">
+              <p className="text-gray-500 text-xs uppercase mb-2">Contract Term</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-500 text-xs">Start Date</p>
+                  <p className="font-medium">{fmtDate(viewing.startDate)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">End Date</p>
+                  <p className="font-medium">{fmtDate(viewing.endDate)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Notice Period</p>
+                  <p className="font-medium">{viewing.noticePeriodDays || 30} days</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Renewal Type</p>
+                  <p className="font-medium">{viewing.renewalType?.replace(/_/g, ' ') || 'Renegotiate'}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-500 text-xs">Tenant</p>
-              <p className="font-medium">{viewing.tenantName}</p>
-              <p className="text-gray-600 text-xs">{viewing.tenantEmail}</p>
+
+            {/* Financial */}
+            <div className="pb-3 border-b border-gray-100">
+              <p className="text-gray-500 text-xs uppercase mb-2">Financial Terms</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-500 text-xs">Monthly Rent</p>
+                  <p className="font-medium text-primary">{viewing.monthlyRent} ETB</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Payment Due Date</p>
+                  <p className="font-medium">Day {viewing.paymentDueDay || 1} of month</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Payment Method</p>
+                  <p className="font-medium">{viewing.paymentMethod?.replace(/_/g, ' ') || 'Bank Transfer'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs">Security Deposit</p>
+                  <p className="font-medium">{viewing.securityDepositAmount ? `${viewing.securityDepositAmount} ETB` : 'None'}</p>
+                </div>
+              </div>
             </div>
+
             {viewing.additionalClauses && (
-              <div>
-                <p className="text-gray-500 text-xs">Additional Clauses</p>
+              <div className="pb-3 border-b border-gray-100">
+                <p className="text-gray-500 text-xs uppercase mb-2">Additional Terms</p>
                 <p className="text-gray-700 text-xs">{viewing.additionalClauses}</p>
               </div>
             )}
+
             {viewing.contractDocumentUrl && (
               <div>
-                <p className="text-gray-500 text-xs mb-1">Contract Document</p>
+                <p className="text-gray-500 text-xs mb-2">Contract Document</p>
                 <a
                   href={viewing.contractDocumentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary text-xs hover:underline">
-                  View Document
+                  className="flex items-center gap-2 text-primary text-sm hover:underline">
+                  <FileText size={14} /> View Contract PDF
                 </a>
               </div>
             )}

@@ -52,6 +52,17 @@ public class RentalContract {
 
     private String paymentFrequency; // Monthly, Quarterly, Annually
 
+    // Ethiopian contract required fields
+    private Integer paymentDueDay = 1; // Day of month (1-31)
+    
+    private String paymentMethod = "BANK_TRANSFER"; // BANK_TRANSFER, CASH, MOBILE_MONEY, CHECK
+    
+    private Double securityDepositAmount;
+    
+    private Integer noticePeriodDays = 30; // Notice period for termination
+    
+    private String renewalType = "RENEGOTIATE"; // AUTO_RENEW, RENEGOTIATE, FIXED_TERM
+
     @Column(nullable = false)
     private String currency = "ETB";
 

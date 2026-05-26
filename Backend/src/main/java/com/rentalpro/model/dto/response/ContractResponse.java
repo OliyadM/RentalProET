@@ -26,6 +26,14 @@ public class ContractResponse {
     private LocalDate endDate;
     private Double monthlyRent;
     private String paymentFrequency;
+    
+    // Ethiopian contract fields
+    private Integer paymentDueDay;
+    private String paymentMethod;
+    private Double securityDepositAmount;
+    private Integer noticePeriodDays;
+    private String renewalType;
+    
     private String contractDocumentUrl;
     private String currency;
     private ContractStatus status;

@@ -16,6 +16,11 @@ export default function CreateContract() {
     unitId: "", tenantEmail: "",
     startDate: "", endDate: "", monthlyRent: "", 
     paymentFrequency: "Monthly",
+    paymentDueDay: "1",
+    paymentMethod: "BANK_TRANSFER",
+    securityDepositAmount: "",
+    noticePeriodDays: "30",
+    renewalType: "RENEGOTIATE",
     contractDocumentUrl: "",
     additionalClauses: "",
   });
@@ -45,6 +50,11 @@ export default function CreateContract() {
         endDate: form.endDate,
         monthlyRent: parseFloat(form.monthlyRent),
         paymentFrequency: form.paymentFrequency,
+        paymentDueDay: parseInt(form.paymentDueDay),
+        paymentMethod: form.paymentMethod,
+        securityDepositAmount: form.securityDepositAmount ? parseFloat(form.securityDepositAmount) : null,
+        noticePeriodDays: parseInt(form.noticePeriodDays),
+        renewalType: form.renewalType,
         contractDocumentUrl: form.contractDocumentUrl || null,
         additionalClauses: form.additionalClauses || null,
       };
@@ -122,6 +132,50 @@ export default function CreateContract() {
               <option value="Quarterly">Quarterly</option>
               <option value="Annually">Annually</option>
             </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Due Day *</label>
+              <input type="number" value={form.paymentDueDay} onChange={set("paymentDueDay")} required min="1" max="31"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <p className="text-xs text-gray-500 mt-1">Day of month (1-31)</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+              <select value={form.paymentMethod} onChange={set("paymentMethod")} required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="CASH">Cash</option>
+                <option value="MOBILE_MONEY">Mobile Money</option>
+                <option value="CHECK">Check</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit (ETB)</label>
+            <input type="number" value={form.securityDepositAmount} onChange={set("securityDepositAmount")} min="0"
+              placeholder="Optional - typically 1-2 months rent"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
+              <input type="number" value={form.noticePeriodDays} onChange={set("noticePeriodDays")} required min="1"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <p className="text-xs text-gray-500 mt-1">Standard: 30-60 days</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Renewal Terms *</label>
+              <select value={form.renewalType} onChange={set("renewalType")} required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="RENEGOTIATE">Renegotiate</option>
+                <option value="AUTO_RENEW">Auto-Renew</option>
+                <option value="FIXED_TERM">Fixed Term Only</option>
+              </select>
+            </div>
           </div>
 
           <FileUpload
