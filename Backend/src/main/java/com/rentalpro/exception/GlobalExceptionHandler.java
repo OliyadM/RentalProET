@@ -83,10 +83,9 @@ public class GlobalExceptionHandler {
         String exceptionMessage = ex.getMessage();
         
         if (exceptionMessage != null) {
-            // Check for common constraint violations
-            if (exceptionMessage.contains("email") || exceptionMessage.contains("users_email_key")) {
+            if (exceptionMessage.contains("users_email_key") || exceptionMessage.contains("uk_") && exceptionMessage.contains("email")) {
                 message = "Email already registered";
-            } else if (exceptionMessage.contains("phone") || exceptionMessage.contains("users_phone_number_key")) {
+            } else if (exceptionMessage.contains("users_phone_number_key") || exceptionMessage.contains("uk_") && exceptionMessage.contains("phone")) {
                 message = "Phone number already registered";
             } else if (exceptionMessage.contains("unique") || exceptionMessage.contains("duplicate")) {
                 message = "This record already exists";

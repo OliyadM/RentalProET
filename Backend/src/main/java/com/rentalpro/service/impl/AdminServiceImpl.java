@@ -90,6 +90,8 @@ public class AdminServiceImpl implements AdminService {
                 .role(UserRole.SUBCITY_STAFF)
                 .subCityZone(request.getSubCityZone())
                 .isActive(true)
+                .accountStatus(com.rentalpro.model.enums.AccountStatus.VERIFIED)
+                .entityType(com.rentalpro.model.enums.EntityType.INDIVIDUAL)
                 .build();
 
         User saved = userRepository.save(officer);
