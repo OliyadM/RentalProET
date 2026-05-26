@@ -126,6 +126,16 @@ public class RentalContractController {
         return ResponseEntity.ok(contractService.getPendingOfficerReview());
     }
 
+    @GetMapping("/officer/all")
+    @PreAuthorize("hasAnyRole('SUBCITY_STAFF', 'ADMINISTRATOR')")
+    public ResponseEntity<List<ContractResponse>> getContractsForOfficer(
+            @RequestParam(required = false) ContractStatus status,
+            @RequestParam(required = false) String subCity,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "newest,desc") String sort) {
+        return ResponseEntity.ok(contractService.getContractsForOfficer(status, subCity, search, sort));
+    }
+
     @PostMapping("/{contractId}/approve")
     @PreAuthorize("hasAnyRole('SUBCITY_STAFF', 'ADMINISTRATOR')")
     public ResponseEntity<ContractResponse> approveContract(@PathVariable UUID contractId) {

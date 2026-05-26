@@ -33,4 +33,5 @@ public interface RentalContractService {
     ContractResponse approveContract(UUID contractId, UUID officerId);
     ContractResponse rejectContractByOfficer(UUID contractId, UUID officerId, String reason);
     List<ContractResponse> getPendingOfficerReview();
+    List<ContractResponse> getContractsForOfficer(ContractStatus status, String subCity, String search, String sortBy);
 }

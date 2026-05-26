@@ -409,6 +409,36 @@ public class RentalContractServiceImpl implements RentalContractService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContractResponse> getContractsForOfficer(ContractStatus status, String subCity, String search, String sortBy) {
+        // Parse sort parameter (format: "field,direction")
+        org.springframework.data.domain.Sort sort;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            String[] parts = sortBy.split(",");
+            String field = parts[0];
+            String direction = parts.length > 1 ? parts[1] : "desc";
+            
+            // Map frontend sort fields to entity fields
+            String entityField = switch (field) {
+                case "newest" -> "tenantConfirmedAt";
+                case "oldest" -> "tenantConfirmedAt";
+                case "rent" -> "monthlyRent";
+                default -> "tenantConfirmedAt";
+            };
+            
+            sort = direction.equalsIgnoreCase("asc") 
+                ? org.springframework.data.domain.Sort.by(entityField).ascending()
+                : org.springframework.data.domain.Sort.by(entityField).descending();
+        } else {
+            sort = org.springframework.data.domain.Sort.by("tenantConfirmedAt").descending();
+        }
+        
+        return contractRepository.findContractsForOfficer(status, subCity, search, sort).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private void logAction(String action, String entityType, UUID entityId, UUID userId, String details) {
         AuditLog log = AuditLog.builder()
                 .action(action)

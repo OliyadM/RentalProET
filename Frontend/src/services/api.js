@@ -112,6 +112,10 @@ export const contractsAPI = {
     const response = await apiClient.get("/contracts/pending-review");
     return response.data;
   },
+  getForOfficer: async (filters = {}) => {
+    const response = await apiClient.get("/contracts/officer/all", { params: filters });
+    return response.data;
+  },
   approve: async (id) => {
     const response = await apiClient.post(`/contracts/${id}/approve`);
     return response.data;
