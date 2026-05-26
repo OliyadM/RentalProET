@@ -6,6 +6,12 @@ import { profileAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { User, Building, FileText, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 
+// ── Inline field error ────────────────────────────────────────────────────────
+function FieldError({ msg }) {
+  if (!msg) return null;
+  return <p className="text-xs text-red-600 mt-1">{msg}</p>;
+}
+
 const statusColors = {
   PENDING_PROFILE: "bg-gray-100 text-gray-700",
   PENDING_VERIFICATION: "bg-yellow-100 text-yellow-700",
@@ -27,6 +33,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [form, setForm] = useState({
     dateOfBirth: "",
     residentialAddress: "",
@@ -71,17 +78,38 @@ export default function Profile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
-    if (!form.dateOfBirth || !form.residentialAddress || !form.nationalIdNumber || !form.tinNumber) {
-      setToast({ type: "error", message: "Please fill all required fields" });
-      return;
+
+    // Per-field validation
+    const errs = {};
+    if (!form.dateOfBirth)
+      errs.dateOfBirth = "Date of birth is required";
+    else if (new Date(form.dateOfBirth) >= new Date())
+      errs.dateOfBirth = "Date of birth must be in the past";
+    else {
+      const age = (new Date() - new Date(form.dateOfBirth)) / (1000 * 60 * 60 * 24 * 365.25);
+      if (age < 18) errs.dateOfBirth = "You must be at least 18 years old";
     }
 
-    if (form.entityType === "BUSINESS" && !form.businessRegNumber) {
-      setToast({ type: "error", message: "Business registration number is required for business entities" });
-      return;
-    }
+    if (!form.residentialAddress.trim())
+      errs.residentialAddress = "Residential address is required";
+    else if (form.residentialAddress.trim().length < 10)
+      errs.residentialAddress = "Please enter a full address (at least 10 characters)";
+
+    if (!form.nationalIdNumber.trim())
+      errs.nationalIdNumber = "National ID number is required";
+    else if (form.nationalIdNumber.trim().length < 5)
+      errs.nationalIdNumber = "National ID number appears too short";
+
+    if (!form.tinNumber.trim())
+      errs.tinNumber = "TIN number is required";
+    else if (form.tinNumber.trim().length < 5)
+      errs.tinNumber = "TIN number appears too short";
+
+    if (form.entityType === "BUSINESS" && !form.businessRegNumber.trim())
+      errs.businessRegNumber = "Business registration number is required for business entities";
+
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) return;
 
     try {
       setSaving(true);
@@ -104,6 +132,8 @@ export default function Profile() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    // Clear the per-field error as the user corrects it
+    if (fieldErrors[name]) setFieldErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   if (loading) {
@@ -259,9 +289,11 @@ export default function Profile() {
                     value={form.dateOfBirth}
                     onChange={handleChange}
                     disabled={!editing}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                    max={new Date().toISOString().split("T")[0]}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500
+                      ${fieldErrors.dateOfBirth ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                   />
+                  <FieldError msg={fieldErrors.dateOfBirth} />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -273,10 +305,11 @@ export default function Profile() {
                     value={form.residentialAddress}
                     onChange={handleChange}
                     disabled={!editing}
-                    required
                     placeholder="123 Main St, Addis Ababa"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500
+                      ${fieldErrors.residentialAddress ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                   />
+                  <FieldError msg={fieldErrors.residentialAddress} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -288,10 +321,11 @@ export default function Profile() {
                     value={form.nationalIdNumber}
                     onChange={handleChange}
                     disabled={!editing}
-                    required
                     placeholder="ET123456789"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500
+                      ${fieldErrors.nationalIdNumber ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                   />
+                  <FieldError msg={fieldErrors.nationalIdNumber} />
                 </div>
                 <div>
                   <FileUpload
@@ -313,10 +347,11 @@ export default function Profile() {
                     value={form.tinNumber}
                     onChange={handleChange}
                     disabled={!editing}
-                    required
                     placeholder="TIN987654321"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500
+                      ${fieldErrors.tinNumber ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                   />
+                  <FieldError msg={fieldErrors.tinNumber} />
                 </div>
               </div>
             </div>
@@ -372,8 +407,10 @@ export default function Profile() {
                       disabled={!editing}
                       required={form.entityType === "BUSINESS"}
                       placeholder="BRN2024001"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500
+                        ${fieldErrors.businessRegNumber ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                     />
+                    <FieldError msg={fieldErrors.businessRegNumber} />
                   </div>
                   <div className="col-span-2">
                     <FileUpload
