@@ -1,5 +1,6 @@
 package com.rentalpro.model.dto.response;
 
+import com.rentalpro.model.enums.PropertyStatus;
 import com.rentalpro.model.enums.PropertyType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +25,7 @@ public class PropertyResponse {
     private Double longitude;
     private Double totalArea;
     private Integer yearBuilt;
-    private Boolean isVerified;
+    private PropertyStatus status;
     private String ownerName;  // Just the name, not the full object
     private LocalDateTime createdAt;
 }

@@ -28,6 +28,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import Profile from "./pages/Profile";
 import ProfileVerification from "./pages/officer/ProfileVerification";
+import OfficerContracts from "./pages/officer/Contracts";
 
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
@@ -75,6 +76,7 @@ export default function App() {
 
       {/* Profile Verification - Officer only */}
       <Route path="/officer/profile-verification" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><ProfileVerification /></ProtectedRoute>} />
+      <Route path="/officer/contracts" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerContracts /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={

@@ -33,7 +33,7 @@ public class PropertyServiceImpl implements PropertyService {
         }
 
         property.setOwner(owner);
-        property.setIsVerified(false);
+        property.setStatus(com.rentalpro.model.enums.PropertyStatus.PENDING_OFFICER_REVIEW);
         return propertyRepository.save(property);
     }
 
@@ -73,7 +73,7 @@ public class PropertyServiceImpl implements PropertyService {
                 .longitude(property.getLongitude())
                 .totalArea(property.getTotalArea())
                 .yearBuilt(property.getYearBuilt())
-                .isVerified(property.getIsVerified())
+                .status(property.getStatus())
                 .ownerName(property.getOwner().getFirstName() + " " + property.getOwner().getLastName())
                 .createdAt(property.getCreatedAt())
                 .build();
@@ -84,7 +84,7 @@ public class PropertyServiceImpl implements PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property not found"));
 
-        property.setIsVerified(true);
+        property.setStatus(com.rentalpro.model.enums.PropertyStatus.ACTIVE);
         Property savedProperty = propertyRepository.save(property);
 
         return mapToResponse(savedProperty);

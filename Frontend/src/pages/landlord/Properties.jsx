@@ -50,9 +50,11 @@ export default function LandlordProperties() {
             </div>
             <p className="text-sm text-gray-600 mb-1">{p.subCity} — {p.woreda}</p>
             <div className="flex items-center gap-1 mb-4">
-              {p.isVerified
-                ? <><CheckCircle size={14} className="text-success" /><span className="text-xs text-success font-medium">Verified</span></>
-                : <><Clock size={14} className="text-accent" /><span className="text-xs text-accent font-medium">Pending Verification</span></>
+              {p.status === 'ACTIVE'
+                ? <><CheckCircle size={14} className="text-success" /><span className="text-xs text-success font-medium">Active</span></>
+                : p.status === 'REJECTED'
+                ? <><Clock size={14} className="text-red-500" /><span className="text-xs text-red-500 font-medium">Rejected</span></>
+                : <><Clock size={14} className="text-accent" /><span className="text-xs text-accent font-medium">Pending Officer Review</span></>
               }
             </div>
             <p className="text-xs text-gray-500 mb-4">{unitCounts[p.id] || 0} units registered</p>
@@ -61,8 +63,15 @@ export default function LandlordProperties() {
                 className="flex-1 text-sm border border-primary text-primary py-2 rounded-lg hover:bg-blue-50 transition font-medium">
                 View Details
               </button>
-              <button onClick={() => navigate(`/landlord/units/add/${p.id}`)}
-                className="flex-1 text-sm bg-primary text-white py-2 rounded-lg hover:bg-blue-900 transition font-medium">
+              <button 
+                onClick={() => navigate(`/landlord/units/add/${p.id}`)}
+                disabled={p.status !== 'ACTIVE'}
+                className={`flex-1 text-sm py-2 rounded-lg transition font-medium ${
+                  p.status === 'ACTIVE' 
+                    ? 'bg-primary text-white hover:bg-blue-900' 
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                title={p.status !== 'ACTIVE' ? 'Property must be verified by an officer before adding units' : ''}>
                 Add Unit
               </button>
             </div>

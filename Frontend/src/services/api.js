@@ -107,6 +107,21 @@ export const contractsAPI = {
     });
     return response.data;
   },
+  // Officer actions
+  getPendingReview: async () => {
+    const response = await apiClient.get("/contracts/pending-review");
+    return response.data;
+  },
+  approve: async (id) => {
+    const response = await apiClient.post(`/contracts/${id}/approve`);
+    return response.data;
+  },
+  rejectByOfficer: async (id, reason) => {
+    const response = await apiClient.post(`/contracts/${id}/reject-by-officer`, null, {
+      params: { reason }
+    });
+    return response.data;
+  },
 };
 
 // ─── Declarations ─────────────────────────────────────────
@@ -125,12 +140,12 @@ export const declarationsAPI = {
     });
     return response.data;
   },
-  create: async (contractId, period, declaredRent) => {
+  create: async (contractId, period, declaredRent, claimDeduction = false) => {
     const response = await apiClient.post(
       `/declarations/contract/${contractId}`,
       null,
       {
-        params: { period, declaredRent }
+        params: { period, declaredRent, claimDeduction }
       }
     );
     return response.data;
@@ -138,6 +153,19 @@ export const declarationsAPI = {
   verify: async (id, notes) => {
     const response = await apiClient.put(`/declarations/${id}/verify`, null, {
       params: { notes }
+    });
+    return response.data;
+  },
+  downloadTaxSummaryPdf: async (declarationId) => {
+    const response = await apiClient.get(`/declarations/${declarationId}/tax-summary.pdf`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+  downloadComplianceReportPdf: async (subCity, filter = "ALL") => {
+    const response = await apiClient.get("/declarations/compliance-report.pdf", {
+      params: { subCity, filter },
+      responseType: "blob",
     });
     return response.data;
   },

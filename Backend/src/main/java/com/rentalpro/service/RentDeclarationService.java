@@ -9,7 +9,8 @@ import java.util.UUID;
 
 public interface RentDeclarationService {
 
-    RentDeclarationResponse createDeclaration(UUID contractId, LocalDate period, Double declaredRent, UUID landlordId);
+    RentDeclarationResponse createDeclaration(
+            UUID contractId, LocalDate period, Double declaredRent, UUID landlordId, boolean claimDeduction);
 
     RentDeclaration analyzeDeclaration(UUID declarationId);
 
@@ -18,6 +19,7 @@ public interface RentDeclarationService {
     List<RentDeclarationResponse> getAnomalies(String subCity);
     //  New
     List<RentDeclarationResponse> getUnverifiedDeclarations(String subCity);
+    RentDeclarationResponse getDeclarationById(UUID declarationId);
     // New
     RentDeclarationResponse verifyDeclaration(UUID declarationId, String notes, UUID staffId);
 }

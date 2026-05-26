@@ -22,6 +22,7 @@ const navByRole = {
   SUBCITY_STAFF: [
     { label: "Dashboard",   path: "/officer/dashboard",   icon: Home },
     { label: "Properties",  path: "/officer/properties",  icon: Building },
+    { label: "Contracts",   path: "/officer/contracts",   icon: FileText },
     { label: "Declarations",path: "/officer/declarations",icon: BarChart2 },
     { label: "Appeals",     path: "/officer/appeals",     icon: AlertCircle },
     { label: "Verify Profiles", path: "/officer/profile-verification", icon: Users },

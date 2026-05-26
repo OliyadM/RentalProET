@@ -15,6 +15,7 @@ export default function OfficerDashboard() {
   const [unverified, setUnverified] = useState([]);
   const [unverifiedProps, setUnverifiedProps] = useState([]);
   const [activeContracts, setActiveContracts] = useState([]);
+  const [pendingContracts, setPendingContracts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,12 +26,14 @@ export default function OfficerDashboard() {
       declarationsAPI.getUnverified(subCity),
       propertiesAPI.getBySubCity(subCity),
       contractsAPI.getByStatus("ACTIVE"),
+      contractsAPI.getPendingReview(),
     ])
-      .then(([appeals, decls, props, contracts]) => {
+      .then(([appeals, decls, props, contracts, pendingReview]) => {
         setPendingAppeals(appeals);
         setUnverified(decls);
-        setUnverifiedProps(props.filter(p => !p.isVerified));
+        setUnverifiedProps(props.filter(p => p.status !== 'ACTIVE'));
         setActiveContracts(contracts);
+        setPendingContracts(pendingReview);
       })
       .finally(() => setLoading(false));
   }, [subCity]);
@@ -78,10 +81,10 @@ export default function OfficerDashboard() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <SummaryCard label="Pending Contracts" value={pendingContracts.length} icon={FileText} color={pendingContracts.length > 0 ? "text-accent" : "text-gray-500"} />
         <SummaryCard label="Pending Appeals" value={pendingAppeals.length} icon={AlertCircle} color={pendingAppeals.length > 0 ? "text-danger" : "text-gray-500"} />
         <SummaryCard label="Unverified Declarations" value={unverified.length} icon={BarChart2} color="text-accent" />
         <SummaryCard label="Properties to Verify" value={unverifiedProps.length} icon={Building} color="text-accent" />
-        <SummaryCard label="Active Contracts" value={activeContracts.length} icon={FileText} color="text-success" />
       </div>
 
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-6">

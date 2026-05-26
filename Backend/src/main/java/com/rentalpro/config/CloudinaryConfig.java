@@ -20,10 +20,16 @@ public class CloudinaryConfig {
     private String apiSecret;
 
     @Bean
+    @ConditionalOnProperty(name = "cloudinary.enabled", havingValue = "true", matchIfMissing = false)
     public Cloudinary cloudinary() {
         // Only create if credentials are provided
         if (cloudName == null || cloudName.isEmpty() || cloudName.equals("your-cloud-name")) {
-            return null;
+            // Return a dummy instance instead of null to avoid bean creation issues
+            return new Cloudinary(ObjectUtils.asMap(
+                    "cloud_name", "dummy",
+                    "api_key", "dummy",
+                    "api_secret", "dummy"
+            ));
         }
         return new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", cloudName,

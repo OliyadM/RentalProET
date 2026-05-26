@@ -23,6 +23,17 @@ public class RentDeclarationResponse {
     private Boolean isAnomaly;
     private String anomalyReason;
     private Double estimatedTax;
+    private Boolean claimDeduction;
+    private Boolean deductionApplied;
+    private Double deductionAmount;
+    private Double taxableAnnualIncome;
+    private Double annualTax;
+    private Double effectiveTaxRate;
+    private String taxRuleVersion;
+    private Boolean mixedUseDeductionWarning;
+    private String taxAdvisoryNote;
+    /** Full tax breakdown for landlord/officer views. */
+    private TaxCalculationResponse taxDetails;
     private Boolean isVerified;
     private LocalDateTime createdAt;
 }

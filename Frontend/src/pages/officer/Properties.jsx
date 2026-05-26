@@ -23,7 +23,7 @@ export default function OfficerProperties() {
   const verify = async () => {
     await propertiesAPI.verify(verifying.id);
     setProperties(prev =>
-      prev.map(p => p.id === verifying.id ? { ...p, isVerified: true } : p)
+      prev.map(p => p.id === verifying.id ? { ...p, status: 'ACTIVE' } : p)
     );
     setVerifying(null);
     setToast("Property verified successfully");
@@ -86,12 +86,14 @@ export default function OfficerProperties() {
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  {p.isVerified
-                    ? <span className="flex items-center gap-1 text-success text-xs font-medium"><CheckCircle size={13} /> Verified</span>
-                    : <span className="text-xs text-accent font-medium">Pending</span>}
+                  {p.status === 'ACTIVE'
+                    ? <span className="flex items-center gap-1 text-success text-xs font-medium"><CheckCircle size={13} /> Active</span>
+                    : p.status === 'REJECTED'
+                    ? <span className="text-xs text-red-500 font-medium">Rejected</span>
+                    : <span className="text-xs text-accent font-medium">Pending Review</span>}
                 </td>
                 <td className="px-6 py-4">
-                  {!p.isVerified && (
+                  {p.status !== 'ACTIVE' && (
                     <button onClick={() => setVerifying(p)}
                       className="bg-success text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700">
                       Verify

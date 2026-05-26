@@ -36,15 +36,39 @@ public class RentDeclaration {
 
     private Double anomalyScore; // 0-1 score
 
+    @Builder.Default
     private Boolean isAnomaly = false;
 
     private String anomalyReason;
 
     private Boolean taxCompliant;
 
+    /** Monthly estimated tax (Proclamation 1395/2025). */
     private Double estimatedTax;
 
+    /** Whether landlord claimed the residential maintenance deduction. */
+    @Builder.Default
+    private Boolean claimDeduction = false;
+
+    private Boolean deductionApplied;
+
+    private Double deductionAmount;
+
+    private Double taxableAnnualIncome;
+
+    private Double annualTax;
+
+    private Double effectiveTaxRate;
+
+    private String taxRuleVersion;
+
+    private Boolean mixedUseDeductionWarning;
+
+    @Column(length = 1000)
+    private String taxAdvisoryNote;
+
     @Column(nullable = false)
+    @Builder.Default
     private Boolean isVerified = false;
 
     private String verificationNotes;

@@ -25,8 +25,15 @@ export default function PropertyDetail() {
           <h2 className="text-2xl font-bold text-gray-900">{property.propertyName}</h2>
           <p className="text-gray-500 text-sm mt-1">{property.address}, {property.subCity}</p>
         </div>
-        <button onClick={() => navigate(`/landlord/units/add/${id}`)}
-          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-900 transition">
+        <button 
+          onClick={() => navigate(`/landlord/units/add/${id}`)}
+          disabled={property.status !== 'ACTIVE'}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition ${
+            property.status === 'ACTIVE'
+              ? 'bg-primary text-white hover:bg-blue-900'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+          title={property.status !== 'ACTIVE' ? 'Property must be verified by an officer before adding units' : ''}>
           <Plus size={16} /> Add Unit
         </button>
       </div>
@@ -40,9 +47,11 @@ export default function PropertyDetail() {
           <div><p className="text-gray-400 text-xs mb-1">Year Built</p><p className="font-medium">{property.yearBuilt || "—"}</p></div>
           <div><p className="text-gray-400 text-xs mb-1">Status</p>
             <div className="flex items-center gap-1">
-              {property.isVerified
-                ? <><CheckCircle size={14} className="text-success" /><span className="text-success font-medium text-xs">Verified</span></>
-                : <><Clock size={14} className="text-accent" /><span className="text-accent font-medium text-xs">Pending</span></>}
+              {property.status === 'ACTIVE'
+                ? <><CheckCircle size={14} className="text-success" /><span className="text-success font-medium text-xs">Active</span></>
+                : property.status === 'REJECTED'
+                ? <><Clock size={14} className="text-red-500" /><span className="text-red-500 font-medium text-xs">Rejected</span></>
+                : <><Clock size={14} className="text-accent" /><span className="text-accent font-medium text-xs">Pending Review</span></>}
             </div>
           </div>
           {property.latitude && (

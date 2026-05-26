@@ -64,9 +64,6 @@ public class Property {
     @Column(nullable = false)
     private PropertyStatus status = PropertyStatus.PENDING_OFFICER_REVIEW;
 
-    @Column(nullable = false)
-    private Boolean isVerified = false;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
 
