@@ -10,10 +10,10 @@ databases:
 services:
   - type: web
     name: rentalpro-backend
-    env: java
+    env: docker
     plan: free
-    buildCommand: cd Backend && ./mvnw clean package -DskipTests
-    startCommand: cd Backend && java -Dserver.port=$PORT -Dspring.profiles.active=prod -jar target/rentalpro-backend-1.0.0.jar
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: ./Backend
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
