@@ -3,9 +3,9 @@
 
 databases:
   - name: rentalpro-db
-    plan: free
     databaseName: rentalpro
     user: rentalpro
+    plan: free
 
 services:
   - type: web
@@ -13,9 +13,8 @@ services:
     runtime: java
     plan: free
     rootDir: Backend
-    buildCommand: chmod +x mvnw && ./mvnw clean package -DskipTests
-    startCommand: java -Dspring.profiles.active=prod -jar target/rentalpro-backend-1.0.0.jar
-    healthCheckPath: /api/actuator/health
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -Dserver.port=$PORT -Dspring.profiles.active=prod -jar target/rentalpro-backend-1.0.0.jar
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
