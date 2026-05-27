@@ -42,6 +42,12 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Phone number already registered");
         }
 
+        // Officers are provisioned exclusively by admins — self-registration is not allowed
+        if (request.getRole() == com.rentalpro.model.enums.UserRole.SUBCITY_STAFF ||
+            request.getRole() == com.rentalpro.model.enums.UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("This role cannot be self-registered. Contact your administrator.");
+        }
+
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
