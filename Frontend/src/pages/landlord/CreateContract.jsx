@@ -12,6 +12,7 @@ export default function CreateContract() {
   const navigate = useNavigate();
   const [units, setUnits] = useState([]);
   const [toast, setToast] = useState(null);
+  const [tenantEmailError, setTenantEmailError] = useState("");
   const [minContractYears, setMinContractYears] = useState(2); // default until fetched
   const [dateError, setDateError] = useState("");
   const [form, setForm] = useState({
@@ -69,7 +70,7 @@ export default function CreateContract() {
     try {
       // Validate required fields
       if (!form.unitId || !form.tenantEmail || !form.startDate || !form.endDate || !form.monthlyRent) {
-        setToast("Please fill in all required fields");
+        setToast({ type: "error", message: "Please fill in all required fields" });
         return;
       }
 
@@ -102,22 +103,32 @@ export default function CreateContract() {
       // If user clicked "Submit for Confirmation", submit it
       if (status === "PENDING_CONFIRMATION") {
         await contractsAPI.submit(response.id);
-        setToast("Contract submitted for tenant confirmation");
+        setToast({ type: "success", message: "Contract submitted for tenant confirmation" });
       } else {
-        setToast("Contract saved as draft");
+        setToast({ type: "success", message: "Contract saved as draft" });
       }
       
       setTimeout(() => navigate("/landlord/contracts"), 1500);
     } catch (error) {
       console.error("Contract creation error:", error);
       const errorMsg = error.response?.data?.message || error.message || "Failed to create contract";
-      setToast(errorMsg);
+
+      // Surface tenant-specific errors inline on the email field
+      const lowerMsg = errorMsg.toLowerCase();
+      if (lowerMsg.includes("not found") || lowerMsg.includes("not registered") ||
+          lowerMsg.includes("not verified") || lowerMsg.includes("not a tenant") ||
+          lowerMsg.includes("has not been verified")) {
+        setTenantEmailError(errorMsg);
+      } else {
+        setTenantEmailError("");
+        setToast({ type: "error", message: errorMsg });
+      }
     }
   };
 
   return (
     <Layout>
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
       <div className="max-w-2xl">
         <h2 className="text-2xl font-bold text-gray-900 mb-1">Create Contract</h2>
         <p className="text-gray-500 text-sm mb-6">Register a new tenant rental agreement</p>
@@ -134,12 +145,16 @@ export default function CreateContract() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tenant Email *</label>
-            <input type="email" value={form.tenantEmail} onChange={set("tenantEmail")} required
+            <input type="email" value={form.tenantEmail}
+              onChange={e => { set("tenantEmail")(e); setTenantEmailError(""); }}
+              required
               placeholder="tenant@example.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            <p className="text-xs text-gray-500 mt-1">
-              Tenant must be registered with this email address
-            </p>
+              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary
+                ${tenantEmailError ? "border-red-400 bg-red-50" : "border-gray-300"}`} />
+            {tenantEmailError
+              ? <p className="text-xs text-red-600 mt-1">{tenantEmailError}</p>
+              : <p className="text-xs text-gray-500 mt-1">Tenant must be registered and verified with this email</p>
+            }
           </div>
           
           <div className="grid grid-cols-2 gap-4">
