@@ -33,10 +33,6 @@ USER spring:spring
 # Copy the built JAR from build stage
 COPY --from=build /app/target/rentalpro-backend-1.0.0.jar app.jar
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
 # Expose port (Render will override with $PORT)
 EXPOSE 8080
 
@@ -44,5 +40,22 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/api/actuator/health || exit 1
 
-# Run the application via entrypoint script
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Run the application with inline URL transformation
+ENTRYPOINT ["/bin/sh", "-c", "\
+  if [ -n \"$DATABASE_URL\" ]; then \
+    case \"$DATABASE_URL\" in \
+      jdbc:*) export SPRING_DATASOURCE_URL=\"$DATABASE_URL\" ;; \
+      postgresql://*) export SPRING_DATASOURCE_URL=\"jdbc:$DATABASE_URL\" ;; \
+      postgres://*) export SPRING_DATASOURCE_URL=\"jdbc:postgresql://${DATABASE_URL#postgres://}\" ;; \
+      *) export SPRING_DATASOURCE_URL=\"$DATABASE_URL\" ;; \
+    esac; \
+    echo \"Database URL transformed\"; \
+  fi; \
+  exec java \
+    -Dspring.profiles.active=prod \
+    -Dserver.port=${PORT:-8080} \
+    -Djava.security.egd=file:/dev/./urandom \
+    -XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -jar app.jar \
+"]
