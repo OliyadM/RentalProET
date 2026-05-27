@@ -28,4 +28,10 @@ public interface RentalContractService {
     List<ContractResponse> getContractsByStatus(ContractStatus status);
     List<ContractResponse> getContractsByUnit(UUID unitId);
     ContractResponse terminateContract(UUID contractId, String reason, UUID staffId);
+    
+    // Officer operations
+    ContractResponse approveContract(UUID contractId, UUID officerId);
+    ContractResponse rejectContractByOfficer(UUID contractId, UUID officerId, String reason);
+    List<ContractResponse> getPendingOfficerReview();
+    List<ContractResponse> getContractsForOfficer(ContractStatus status, String subCity, String search, String sortBy);
 }

@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   Home, Building, FileText, LogOut, BarChart2, AlertCircle,
+  Settings, Users, Globe, UserCircle, MapPin,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
@@ -10,23 +11,29 @@ const navByRole = {
     { label: "Dashboard",   path: "/landlord/dashboard",  icon: Home },
     { label: "Properties",  path: "/landlord/properties", icon: Building },
     { label: "Contracts",   path: "/landlord/contracts",  icon: FileText },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
   TENANT: [
     { label: "Dashboard",   path: "/tenant/dashboard",    icon: Home },
     { label: "My Contracts",path: "/tenant/contracts",    icon: FileText },
     { label: "My Appeals",  path: "/tenant/appeals",      icon: AlertCircle },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
   SUBCITY_STAFF: [
     { label: "Dashboard",   path: "/officer/dashboard",   icon: Home },
     { label: "Properties",  path: "/officer/properties",  icon: Building },
+    { label: "Contracts",   path: "/officer/contracts",   icon: FileText },
     { label: "Declarations",path: "/officer/declarations",icon: BarChart2 },
     { label: "Appeals",     path: "/officer/appeals",     icon: AlertCircle },
+    { label: "GIS Heatmap", path: "/officer/gis-heatmap", icon: MapPin },
+    { label: "Verify Profiles", path: "/officer/profile-verification", icon: Users },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
   ADMINISTRATOR: [
-    { label: "Dashboard",   path: "/officer/dashboard",   icon: Home },
-    { label: "Properties",  path: "/officer/properties",  icon: Building },
-    { label: "Declarations",path: "/officer/declarations",icon: BarChart2 },
-    { label: "Appeals",     path: "/officer/appeals",     icon: AlertCircle },
+    { label: "System Settings", path: "/admin/dashboard",              icon: Settings },
+    { label: "Manage Officers", path: "/admin/dashboard?tab=officers", icon: Users },
+    { label: "Global Metrics",  path: "/admin/dashboard?tab=metrics",  icon: Globe },
+    { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],
 };
 
@@ -42,7 +49,9 @@ export default function Layout({ children }) {
   };
 
   // Derive a human-readable page title from the current path
-  const currentNav = navItems.find(item => location.pathname.startsWith(item.path));
+  const currentNav = navItems.find(item =>
+    location.pathname.startsWith(item.path.split("?")[0])
+  );
   const pageTitle = currentNav?.label ?? "RentalPro ET";
 
   return (
@@ -58,7 +67,8 @@ export default function Layout({ children }) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = location.pathname === item.path;
+            const active = location.pathname === item.path.split("?")[0] &&
+              (!item.path.includes("?") || location.search === `?${item.path.split("?")[1]}`);
             return (
               <Link
                 key={item.path}

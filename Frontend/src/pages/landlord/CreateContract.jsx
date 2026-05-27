@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
-import { contractsAPI, unitsAPI, propertiesAPI } from "../../services/api";
+import FileUpload from "../../components/FileUpload";
+import { contractsAPI, unitsAPI, propertiesAPI, adminAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 export default function CreateContract() {
@@ -11,9 +12,20 @@ export default function CreateContract() {
   const navigate = useNavigate();
   const [units, setUnits] = useState([]);
   const [toast, setToast] = useState(null);
+  const [tenantEmailError, setTenantEmailError] = useState("");
+  const [minContractYears, setMinContractYears] = useState(2); // default until fetched
+  const [dateError, setDateError] = useState("");
   const [form, setForm] = useState({
     unitId: "", tenantEmail: "",
-    startDate: "", endDate: "", monthlyRent: "", termsAndConditions: "",
+    startDate: "", endDate: "", monthlyRent: "", 
+    paymentFrequency: "Monthly",
+    paymentDueDay: "1",
+    paymentMethod: "BANK_TRANSFER",
+    securityDepositAmount: "",
+    noticePeriodDays: "30",
+    renewalType: "RENEGOTIATE",
+    contractDocumentUrl: "",
+    additionalClauses: "",
   });
 
   useEffect(() => {
@@ -21,15 +33,50 @@ export default function CreateContract() {
       const all = await Promise.all(ps.map(p => unitsAPI.getByProperty(p.id)));
       setUnits(all.flat());
     });
+    // Fetch the admin-configured minimum contract duration (defaults to 2 on failure)
+    adminAPI.getContractDurationSetting()
+      .then(years => setMinContractYears(years))
+      .catch(() => setMinContractYears(2));
   }, [user.id]);
 
   const set = f => e => setForm({ ...form, [f]: e.target.value });
+
+  // When start date changes, clear any date error and revalidate end date
+  const handleStartDateChange = (e) => {
+    const newStart = e.target.value;
+    setForm(prev => ({ ...prev, startDate: newStart, endDate: "" }));
+    setDateError("");
+  };
+
+  // Compute the earliest allowed end date based on start + minContractYears
+  const minEndDate = (() => {
+    if (!form.startDate) return "";
+    const d = new Date(form.startDate);
+    d.setFullYear(d.getFullYear() + minContractYears);
+    return d.toISOString().split("T")[0];
+  })();
+
+  const handleEndDateChange = (e) => {
+    const val = e.target.value;
+    setForm(prev => ({ ...prev, endDate: val }));
+    if (form.startDate && val && val < minEndDate) {
+      setDateError(`Contract must be at least ${minContractYears} year${minContractYears !== 1 ? "s" : ""}. Earliest end date: ${minEndDate}`);
+    } else {
+      setDateError("");
+    }
+  };
 
   const submit = async (status) => {
     try {
       // Validate required fields
       if (!form.unitId || !form.tenantEmail || !form.startDate || !form.endDate || !form.monthlyRent) {
-        setToast("Please fill in all required fields");
+        setToast({ type: "error", message: "Please fill in all required fields" });
+        return;
+      }
+
+      // Client-side minimum duration guard
+      if (minEndDate && form.endDate < minEndDate) {
+        setDateError(`Contract must be at least ${minContractYears} year${minContractYears !== 1 ? "s" : ""}. Earliest end date: ${minEndDate}`);
         return;
       }
 
@@ -40,7 +87,14 @@ export default function CreateContract() {
         startDate: form.startDate,
         endDate: form.endDate,
         monthlyRent: parseFloat(form.monthlyRent),
-        termsAndConditions: form.termsAndConditions || null,
+        paymentFrequency: form.paymentFrequency,
+        paymentDueDay: parseInt(form.paymentDueDay),
+        paymentMethod: form.paymentMethod,
+        securityDepositAmount: form.securityDepositAmount ? parseFloat(form.securityDepositAmount) : null,
+        noticePeriodDays: parseInt(form.noticePeriodDays),
+        renewalType: form.renewalType,
+        contractDocumentUrl: form.contractDocumentUrl || null,
+        additionalClauses: form.additionalClauses || null,
       };
 
       // Create contract as DRAFT first
@@ -49,22 +103,32 @@ export default function CreateContract() {
       // If user clicked "Submit for Confirmation", submit it
       if (status === "PENDING_CONFIRMATION") {
         await contractsAPI.submit(response.id);
-        setToast("Contract submitted for tenant confirmation");
+        setToast({ type: "success", message: "Contract submitted for tenant confirmation" });
       } else {
-        setToast("Contract saved as draft");
+        setToast({ type: "success", message: "Contract saved as draft" });
       }
       
       setTimeout(() => navigate("/landlord/contracts"), 1500);
     } catch (error) {
       console.error("Contract creation error:", error);
       const errorMsg = error.response?.data?.message || error.message || "Failed to create contract";
-      setToast(errorMsg);
+
+      // Surface tenant-specific errors inline on the email field
+      const lowerMsg = errorMsg.toLowerCase();
+      if (lowerMsg.includes("not found") || lowerMsg.includes("not registered") ||
+          lowerMsg.includes("not verified") || lowerMsg.includes("not a tenant") ||
+          lowerMsg.includes("has not been verified")) {
+        setTenantEmailError(errorMsg);
+      } else {
+        setTenantEmailError("");
+        setToast({ type: "error", message: errorMsg });
+      }
     }
   };
 
   return (
     <Layout>
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
       <div className="max-w-2xl">
         <h2 className="text-2xl font-bold text-gray-900 mb-1">Create Contract</h2>
         <p className="text-gray-500 text-sm mb-6">Register a new tenant rental agreement</p>
@@ -81,24 +145,46 @@ export default function CreateContract() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tenant Email *</label>
-            <input type="email" value={form.tenantEmail} onChange={set("tenantEmail")} required
+            <input type="email" value={form.tenantEmail}
+              onChange={e => { set("tenantEmail")(e); setTenantEmailError(""); }}
+              required
               placeholder="tenant@example.com"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            <p className="text-xs text-gray-500 mt-1">
-              Tenant must be registered with this email address
-            </p>
+              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary
+                ${tenantEmailError ? "border-red-400 bg-red-50" : "border-gray-300"}`} />
+            {tenantEmailError
+              ? <p className="text-xs text-red-600 mt-1">{tenantEmailError}</p>
+              : <p className="text-xs text-gray-500 mt-1">Tenant must be registered and verified with this email</p>
+            }
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-              <input type="date" value={form.startDate} onChange={set("startDate")} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <input
+                type="date"
+                value={form.startDate}
+                onChange={handleStartDateChange}
+                required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
-              <input type="date" value={form.endDate} onChange={set("endDate")} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <input
+                type="date"
+                value={form.endDate}
+                onChange={handleEndDateChange}
+                required
+                min={minEndDate || undefined}
+                className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary
+                  ${dateError ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+              />
+              {dateError && <p className="text-xs text-red-600 mt-1">{dateError}</p>}
+              {!dateError && form.startDate && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Min. {minContractYears} year{minContractYears !== 1 ? "s" : ""} — earliest: {minEndDate}
+                </p>
+              )}
             </div>
           </div>
           
@@ -107,11 +193,73 @@ export default function CreateContract() {
             <input type="number" value={form.monthlyRent} onChange={set("monthlyRent")} required min="1"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Frequency *</label>
+            <select value={form.paymentFrequency} onChange={set("paymentFrequency")} required
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="Monthly">Monthly</option>
+              <option value="Quarterly">Quarterly</option>
+              <option value="Annually">Annually</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Due Day *</label>
+              <input type="number" value={form.paymentDueDay} onChange={set("paymentDueDay")} required min="1" max="31"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <p className="text-xs text-gray-500 mt-1">Day of month (1-31)</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+              <select value={form.paymentMethod} onChange={set("paymentMethod")} required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="CASH">Cash</option>
+                <option value="MOBILE_MONEY">Mobile Money</option>
+                <option value="CHECK">Check</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit (ETB)</label>
+            <input type="number" value={form.securityDepositAmount} onChange={set("securityDepositAmount")} min="0"
+              placeholder="Optional - typically 1-2 months rent"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (Days) *</label>
+              <input type="number" value={form.noticePeriodDays} onChange={set("noticePeriodDays")} required min="1"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              <p className="text-xs text-gray-500 mt-1">Standard: 30-60 days</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Renewal Terms *</label>
+              <select value={form.renewalType} onChange={set("renewalType")} required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="RENEGOTIATE">Renegotiate</option>
+                <option value="AUTO_RENEW">Auto-Renew</option>
+                <option value="FIXED_TERM">Fixed Term Only</option>
+              </select>
+            </div>
+          </div>
+
+          <FileUpload
+            label="Contract Document (Optional)"
+            value={form.contractDocumentUrl}
+            onChange={(url) => setForm({ ...form, contractDocumentUrl: url })}
+            folder="contracts"
+            helperText="Upload signed rental agreement document (optional)"
+          />
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Terms and Conditions</label>
-            <textarea value={form.termsAndConditions} onChange={set("termsAndConditions")} rows={3}
-              placeholder="Enter rental terms..."
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Clauses</label>
+            <textarea value={form.additionalClauses} onChange={set("additionalClauses")} rows={3}
+              placeholder="Enter any additional terms or special conditions..."
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           </div>
 

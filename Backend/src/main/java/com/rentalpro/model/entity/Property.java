@@ -1,6 +1,7 @@
 package com.rentalpro.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.rentalpro.model.enums.PropertyStatus;
 import com.rentalpro.model.enums.PropertyType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -39,9 +40,17 @@ public class Property {
     @Column(nullable = false)
     private String woreda;
 
+    @Column(nullable = false)
+    private String kebele;
+
+    @Column(nullable = false)
+    private String siteDesignation; // Residential / Commercial / Mixed
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PropertyType propertyType;
+
+    private String titleDeedUrl;
 
     // Simple Double fields instead of PostGIS geometry
     private Double latitude;
@@ -51,8 +60,10 @@ public class Property {
 
     private Integer yearBuilt;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Boolean isVerified = false;
+    @Builder.Default
+    private PropertyStatus status = PropertyStatus.PENDING_OFFICER_REVIEW;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -4,7 +4,7 @@ import { Bell, Check, CheckCheck, X } from "lucide-react";
 import { notificationsAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
-const POLL_INTERVAL_MS = 30_000; // 30 seconds
+const POLL_INTERVAL_MS = 15_000; // 15 seconds
 
 // ── Relative time helper ──────────────────────────────────────────────────────
 function relativeTime(isoString) {
@@ -22,31 +22,39 @@ function relativeTime(isoString) {
 // ── Route resolver — maps NotificationType + user role → navigation path ─────
 function resolveNavPath(notification, userRole) {
   const { type, relatedEntityId } = notification;
-  if (!relatedEntityId) return null;
 
-  const contractTypes = [
-    "CONTRACT_CONFIRMED",
-    "CONTRACT_REJECTED",
-    "CONTRACT_SUBMITTED",
-  ];
-  const appealTypes = [
-    "APPEAL_SUBMITTED",
-    "APPEAL_RESOLVED",
-    "APPEAL_REJECTED",
-  ];
+  const contractTypes = ["CONTRACT_CONFIRMED", "CONTRACT_REJECTED", "CONTRACT_SUBMITTED"];
+  const appealTypes   = ["APPEAL_SUBMITTED", "APPEAL_RESOLVED", "APPEAL_REJECTED"];
 
   if (contractTypes.includes(type)) {
-    if (userRole === "LANDLORD")    return `/landlord/contracts/${relatedEntityId}`;
-    if (userRole === "TENANT")      return `/tenant/contracts/${relatedEntityId}`;
+    if (userRole === "LANDLORD")                                      return `/landlord/contracts/${relatedEntityId}`;
+    if (userRole === "TENANT")                                        return `/tenant/contracts/${relatedEntityId}`;
+    if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/contracts`;
   }
 
   if (appealTypes.includes(type)) {
-    if (userRole === "TENANT")                                    return `/tenant/appeals`;
+    if (userRole === "TENANT")                                        return `/tenant/appeals`;
     if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/appeals`;
   }
 
+  if (type === "PROPERTY_PENDING_REVIEW") {
+    // Officers navigate to the properties list to review the new submission
+    if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/properties`;
+    return null;
+  }
+
   if (type === "PROPERTY_VERIFIED") {
-    return `/landlord/properties/${relatedEntityId}`;
+    // Landlord navigates to their properties list
+    return `/landlord/properties`;
+  }
+
+  if (type === "PROFILE_PENDING_REVIEW") {
+    if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/profile-verification`;
+    return null;
+  }
+
+  if (["ACCOUNT_CREATED", "ACCOUNT_VERIFIED", "ACCOUNT_REJECTED"].includes(type)) {
+    return "/profile";
   }
 
   return null;
@@ -125,7 +133,12 @@ export default function NotificationBell() {
         setOpen(false);
       }
     }
-    if (open) document.addEventListener("mousedown", handleClickOutside);
+    if (open) {
+      // Refresh immediately when the dropdown is opened so the user
+      // always sees the latest notifications without waiting for the poll
+      fetchNotifications();
+      document.addEventListener("mousedown", handleClickOutside);
+    }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 

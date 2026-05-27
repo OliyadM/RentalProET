@@ -88,23 +88,68 @@ export default function TenantContractDetail() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6 mb-5">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><p className="text-gray-400 text-xs mb-1">Landlord</p><p className="font-medium">{contract.landlordName}</p></div>
-            <div><p className="text-gray-400 text-xs mb-1">Monthly Rent</p><p className="font-bold text-primary">{fmt(contract.monthlyRent)}</p></div>
-            <div><p className="text-gray-400 text-xs mb-1">Start Date</p><p className="font-medium">{fmtDate(contract.startDate)}</p></div>
-            <div><p className="text-gray-400 text-xs mb-1">End Date</p><p className="font-medium">{fmtDate(contract.endDate)}</p></div>
+          <h3 className="font-semibold text-gray-800 mb-4">Contract Details</h3>
+          
+          {/* Parties */}
+          <div className="mb-4 pb-4 border-b border-gray-100">
+            <p className="text-xs text-gray-500 uppercase mb-2">Parties</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-gray-400 text-xs mb-1">Landlord</p><p className="font-medium">{contract.landlordName}</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Tenant</p><p className="font-medium">{contract.tenantName}</p></div>
+            </div>
           </div>
-          {contract.termsAndConditions && (
+
+          {/* Property */}
+          <div className="mb-4 pb-4 border-b border-gray-100">
+            <p className="text-xs text-gray-500 uppercase mb-2">Property</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-gray-400 text-xs mb-1">Property Name</p><p className="font-medium">{contract.propertyName}</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Unit Number</p><p className="font-medium">{contract.unitNumber}</p></div>
+              <div className="col-span-2"><p className="text-gray-400 text-xs mb-1">Address</p><p className="font-medium">{contract.propertyAddress}</p></div>
+            </div>
+          </div>
+
+          {/* Term */}
+          <div className="mb-4 pb-4 border-b border-gray-100">
+            <p className="text-xs text-gray-500 uppercase mb-2">Contract Term</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-gray-400 text-xs mb-1">Start Date</p><p className="font-medium">{fmtDate(contract.startDate)}</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">End Date</p><p className="font-medium">{fmtDate(contract.endDate)}</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Notice Period</p><p className="font-medium">{contract.noticePeriodDays || 30} days</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Renewal Type</p><p className="font-medium">{contract.renewalType?.replace(/_/g, ' ') || 'Renegotiate'}</p></div>
+            </div>
+          </div>
+
+          {/* Financial */}
+          <div className="mb-4">
+            <p className="text-xs text-gray-500 uppercase mb-2">Financial Terms</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-gray-400 text-xs mb-1">Monthly Rent</p><p className="font-bold text-primary">{fmt(contract.monthlyRent)}</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Payment Due Date</p><p className="font-medium">Day {contract.paymentDueDay || 1} of each month</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Payment Method</p><p className="font-medium">{contract.paymentMethod?.replace(/_/g, ' ') || 'Bank Transfer'}</p></div>
+              <div><p className="text-gray-400 text-xs mb-1">Security Deposit</p><p className="font-medium">{contract.securityDepositAmount ? fmt(contract.securityDepositAmount) : 'None'}</p></div>
+            </div>
+          </div>
+
+          {contract.additionalClauses && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">Terms & Conditions</p>
-              <p className="text-sm text-gray-700">{contract.termsAndConditions}</p>
+              <p className="text-xs text-gray-500 mb-1">Additional Terms</p>
+              <p className="text-sm text-gray-700">{contract.additionalClauses}</p>
             </div>
           )}
+          
           <div className="mt-4 flex gap-2">
-            <button onClick={() => setToast({ msg: "PDF generation coming soon", type: "success" })}
-              className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-              <FileText size={14} /> Download Contract PDF
-            </button>
+            {contract.contractDocumentUrl ? (
+              <a href={contract.contractDocumentUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-900">
+                <FileText size={14} /> View Contract PDF
+              </a>
+            ) : (
+              <button onClick={() => setToast({ msg: "Contract PDF will be available after officer approval", type: "info" })}
+                className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                <FileText size={14} /> Contract PDF (Pending)
+              </button>
+            )}
           </div>
         </div>
 

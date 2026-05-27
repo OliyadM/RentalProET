@@ -107,6 +107,25 @@ export const contractsAPI = {
     });
     return response.data;
   },
+  // Officer actions
+  getPendingReview: async () => {
+    const response = await apiClient.get("/contracts/pending-review");
+    return response.data;
+  },
+  getForOfficer: async (filters = {}) => {
+    const response = await apiClient.get("/contracts/officer/all", { params: filters });
+    return response.data;
+  },
+  approve: async (id) => {
+    const response = await apiClient.post(`/contracts/${id}/approve`);
+    return response.data;
+  },
+  rejectByOfficer: async (id, reason) => {
+    const response = await apiClient.post(`/contracts/${id}/reject-by-officer`, null, {
+      params: { reason }
+    });
+    return response.data;
+  },
 };
 
 // ─── Declarations ─────────────────────────────────────────
@@ -125,12 +144,12 @@ export const declarationsAPI = {
     });
     return response.data;
   },
-  create: async (contractId, period, declaredRent) => {
+  create: async (contractId, period, declaredRent, claimDeduction = false) => {
     const response = await apiClient.post(
       `/declarations/contract/${contractId}`,
       null,
       {
-        params: { period, declaredRent }
+        params: { period, declaredRent, claimDeduction }
       }
     );
     return response.data;
@@ -138,6 +157,19 @@ export const declarationsAPI = {
   verify: async (id, notes) => {
     const response = await apiClient.put(`/declarations/${id}/verify`, null, {
       params: { notes }
+    });
+    return response.data;
+  },
+  downloadTaxSummaryPdf: async (declarationId) => {
+    const response = await apiClient.get(`/declarations/${declarationId}/tax-summary.pdf`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+  downloadComplianceReportPdf: async (subCity, filter = "ALL") => {
+    const response = await apiClient.get("/declarations/compliance-report.pdf", {
+      params: { subCity, filter },
+      responseType: "blob",
     });
     return response.data;
   },
@@ -185,6 +217,48 @@ export const analyticsAPI = {
     const response = await apiClient.get(`/analytics/benchmark/${propertyId}`);
     return response.data;
   },
+  // GIS Heatmap endpoints
+  getRentDensityHeatmap: async (filters = {}) => {
+    const response = await apiClient.get("/analytics/heatmap/rent-density", { params: filters });
+    return response.data;
+  },
+  getAnomalyConcentration: async (filters = {}) => {
+    const response = await apiClient.get("/analytics/heatmap/anomaly-concentration", { params: filters });
+    return response.data;
+  },
+};
+
+// ─── Admin ────────────────────────────────────────────────
+export const adminAPI = {
+  // System Config
+  getConfig: async () => {
+    const response = await apiClient.get("/admin/config");
+    return response.data;
+  },
+  updateConfig: async (data) => {
+    const response = await apiClient.put("/admin/config", data);
+    return response.data;
+  },
+  // Officer Management
+  getOfficers: async () => {
+    const response = await apiClient.get("/admin/officers");
+    return response.data;
+  },
+  createOfficer: async (data) => {
+    const response = await apiClient.post("/admin/officers", data);
+    return response.data;
+  },
+  toggleOfficerStatus: async (id, active) => {
+    const response = await apiClient.put(`/admin/officers/${id}/status`, null, {
+      params: { active },
+    });
+    return response.data;
+  },
+  // Public — readable by any authenticated user (used by landlord contract form)
+  getContractDurationSetting: async () => {
+    const response = await apiClient.get("/admin/settings/contract-duration");
+    return response.data.minimumContractYears;
+  },
 };
 
 // ─── Notifications ────────────────────────────────────────
@@ -203,5 +277,46 @@ export const notificationsAPI = {
   },
   markAllAsRead: async () => {
     await apiClient.put("/notifications/read-all");
+  },
+};
+
+// ─── Profile ──────────────────────────────────────────────
+export const profileAPI = {
+  getMyProfile: async () => {
+    const response = await apiClient.get("/users/profile/me");
+    return response.data;
+  },
+  updateProfile: async (data) => {
+    const response = await apiClient.post("/users/profile", data);
+    return response.data;
+  },
+  getPendingProfiles: async () => {
+    const response = await apiClient.get("/users/profiles/pending");
+    return response.data;
+  },
+  verifyProfile: async (userId, status, verificationNotes, rejectionReason) => {
+    const response = await apiClient.post("/users/profiles/verify", {
+      userId,
+      status,
+      verificationNotes,
+      rejectionReason,
+    });
+    return response.data;
+  },
+};
+
+// ─── File Upload ──────────────────────────────────────────
+export const filesAPI = {
+  upload: async (file, folder = "rentalpro") => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    
+    const response = await apiClient.post("/files/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data.url;
   },
 };

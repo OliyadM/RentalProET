@@ -7,6 +7,14 @@ spring:
   application:
     name: rentalpro-backend
 
+  # DevTools for hot reload
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+    livereload:
+      enabled: true
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rentalpro_db
     username: postgres
@@ -43,6 +51,13 @@ jwt:
   secret: my-very-secret-key-that-is-at-least-32-characters-long-for-security
   expiration: 86400000
 
+# Cloudinary Configuration
+cloudinary:
+  enabled: ${CLOUDINARY_ENABLED:true}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:dgfzid5yo}
+  api-key: ${CLOUDINARY_API_KEY:664211454537591}
+  api-secret: ${CLOUDINARY_API_SECRET:Fk_SLlXp3DNeuPuRkZkP4xaVdgU}
+
 logging:
   level:
     com.rentalpro: DEBUG
@@ -58,3 +73,14 @@ management:
   endpoint:
     health:
       show-details: always
+
+# ── Database Seeder ───────────────────────────────────────────────────────────
+# Default admin credentials for first-run initialization.
+# Override via environment variables in staging/production:
+#   ADMIN_SEED_EMAIL, ADMIN_SEED_PASSWORD, ADMIN_SEED_PHONE
+app:
+  seed:
+    admin:
+      email: ${ADMIN_SEED_EMAIL:admin@rentalpro.et}
+      password: ${ADMIN_SEED_PASSWORD:Admin@123}
+      phone: ${ADMIN_SEED_PHONE:+251900000000}

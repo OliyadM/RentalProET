@@ -3,9 +3,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
+import MapPicker from "../../components/MapPicker";
+import FileUpload from "../../components/FileUpload";
 import { propertiesAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import { MapPin } from "lucide-react";
 
 const subCities = ["Bole","Kirkos","Yeka","Arada","Lideta","Kolfe","Nifas Silk","Akaky"];
 
@@ -14,12 +15,18 @@ export default function AddProperty() {
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
-    propertyName: "", address: "", subCity: "Bole", woreda: "",
-    propertyType: "RESIDENTIAL", totalArea: "", yearBuilt: "",
+    propertyName: "", address: "", subCity: "Bole", woreda: "", kebele: "",
+    siteDesignation: "Residential",
+    propertyType: "HOUSE", totalArea: "", yearBuilt: "",
+    titleDeedUrl: "",
     latitude: "", longitude: "",
   });
 
   const set = f => e => setForm({ ...form, [f]: e.target.value });
+
+  const handleMapChange = (lat, lng) => {
+    setForm({ ...form, latitude: lat.toString(), longitude: lng.toString() });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +37,10 @@ export default function AddProperty() {
         address: form.address,
         subCity: form.subCity,
         woreda: form.woreda,
+        kebele: form.kebele,
+        siteDesignation: form.siteDesignation,
         propertyType: form.propertyType,
+        titleDeedUrl: form.titleDeedUrl || null,
         totalArea: form.totalArea ? parseFloat(form.totalArea) : null,
         yearBuilt: form.yearBuilt ? parseInt(form.yearBuilt) : null,
         latitude: form.latitude ? parseFloat(form.latitude) : null,
@@ -81,15 +91,30 @@ export default function AddProperty() {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kebele *</label>
+              <input value={form.kebele} onChange={set("kebele")} required placeholder="e.g. Kebele 12"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Site Designation *</label>
+              <select value={form.siteDesignation} onChange={set("siteDesignation")}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="Residential">Residential</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Mixed">Mixed</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Property Type *</label>
                 <select value={form.propertyType} onChange={set("propertyType")}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="RESIDENTIAL">Residential</option>
-                  <option value="COMMERCIAL">Commercial</option>
-                  <option value="MIXED_USE">Mixed Use</option>
-                  <option value="INDUSTRIAL">Industrial</option>
+                  <option value="HOUSE">House</option>
+                  <option value="APARTMENT_BUILDING">Apartment Building</option>
+                  <option value="COMMERCIAL_BUILDING">Commercial Building</option>
+                  <option value="MIXED_USE_BUILDING">Mixed-Use Building</option>
+                  <option value="WAREHOUSE_INDUSTRIAL">Warehouse/Industrial</option>
                 </select>
               </div>
               <div>
@@ -104,22 +129,19 @@ export default function AddProperty() {
                 placeholder="e.g. 2010"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Latitude (optional)</label>
-                <input value={form.latitude} onChange={set("latitude")} placeholder="9.0054"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Longitude (optional)</label>
-                <input value={form.longitude} onChange={set("longitude")} placeholder="38.7636"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-              <MapPin size={20} className="text-gray-400" />
-              <p className="text-sm text-gray-500">Map integration coming soon — enter coordinates manually above</p>
-            </div>
+            <FileUpload
+              label="Title Deed Document"
+              value={form.titleDeedUrl}
+              onChange={(url) => setForm({ ...form, titleDeedUrl: url })}
+              folder="properties/title-deeds"
+              required
+              helperText="Upload your property title deed document (PDF or image)"
+            />
+            <MapPicker
+              latitude={form.latitude}
+              longitude={form.longitude}
+              onChange={handleMapChange}
+            />
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => navigate("/landlord/properties")}
                 className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
