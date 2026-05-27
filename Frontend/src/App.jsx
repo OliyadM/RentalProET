@@ -72,6 +72,12 @@ export default function App() {
       <Route path="/officer/gis-heatmap" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><GISHeatmap /></ProtectedRoute>} />
       <Route path="/officer/profile-verification" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><ProfileVerification /></ProtectedRoute>} />
 
+      {/* Administrator — isolated admin module */}
+      <Route path="/admin/dashboard" element={<ProtectedRoute roles={["ADMINISTRATOR"]}><AdminDashboard /></ProtectedRoute>} />
+
+      {/* Profile - accessible by all authenticated users */}
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
       {/* Default redirect */}
       <Route path="/" element={
         user?.role === "LANDLORD"      ? <Navigate to="/landlord/dashboard" /> :
