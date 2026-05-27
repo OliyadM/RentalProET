@@ -7,6 +7,14 @@ spring:
   application:
     name: rentalpro-backend
 
+  # DevTools for hot reload
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+    livereload:
+      enabled: true
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rentalpro_db
     username: postgres
