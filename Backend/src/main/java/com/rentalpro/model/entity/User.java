@@ -49,6 +49,7 @@ public class User implements UserDetails {
     private UserRole role;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
     private String subCityZone;
@@ -62,6 +63,7 @@ public class User implements UserDetails {
     // KYC/Profile fields
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private AccountStatus accountStatus = AccountStatus.PENDING_PROFILE;
 
     private LocalDate dateOfBirth;
@@ -78,6 +80,7 @@ public class User implements UserDetails {
     private String tinNumber;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private EntityType entityType = EntityType.INDIVIDUAL;
 
     private String businessRegNumber;

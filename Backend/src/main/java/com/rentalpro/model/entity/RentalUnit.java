@@ -36,8 +36,10 @@ public class RentalUnit {
 
     private Integer numberOfRooms;
 
+    @Builder.Default
     private Boolean hasParking = false;
 
+    @Builder.Default
     private Boolean hasElevator = false;
 
     private String amenities; // JSON string

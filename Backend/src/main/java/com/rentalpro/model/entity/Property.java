@@ -62,6 +62,7 @@ public class Property {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private PropertyStatus status = PropertyStatus.PENDING_OFFICER_REVIEW;
 
     @CreationTimestamp

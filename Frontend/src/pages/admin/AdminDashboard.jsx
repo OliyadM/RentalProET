@@ -100,16 +100,17 @@ export default function AdminDashboard() {
 // ── Tab 1: System Configuration ───────────────────────────────────────────────
 function SystemConfigTab({ setToast }) {
   const [config, setConfig] = useState(null);
-  const [form, setForm] = useState({ taxRatePercent: "", anomalyThresholdPercent: "", maxRentIncreaseCapPercent: "" });
+  const [form, setForm] = useState({ taxRatePercent: "", anomalyThresholdPercent: "", maxRentIncreaseCapPercent: "", minimumContractYears: "" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     adminAPI.getConfig().then((data) => {
       setConfig(data);
       setForm({
-        taxRatePercent:           String(data.taxRatePercent),
-        anomalyThresholdPercent:  String(data.anomalyThresholdPercent),
+        taxRatePercent:            String(data.taxRatePercent),
+        anomalyThresholdPercent:   String(data.anomalyThresholdPercent),
         maxRentIncreaseCapPercent: String(data.maxRentIncreaseCapPercent),
+        minimumContractYears:      String(data.minimumContractYears ?? 2),
       });
     });
   }, []);
@@ -124,6 +125,7 @@ function SystemConfigTab({ setToast }) {
         taxRatePercent:           parseFloat(form.taxRatePercent),
         anomalyThresholdPercent:  parseFloat(form.anomalyThresholdPercent),
         maxRentIncreaseCapPercent: parseFloat(form.maxRentIncreaseCapPercent),
+        minimumContractYears:     parseInt(form.minimumContractYears, 10),
       });
       setConfig(updated);
       setToast({ msg: "System configuration saved successfully", type: "success" });
@@ -217,11 +219,32 @@ function SystemConfigTab({ setToast }) {
             </p>
           </div>
 
+          {/* Minimum Contract Duration */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Minimum Contract Duration (Years)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={form.minimumContractYears}
+                onChange={set("minimumContractYears")}
+                min="1" max="10" step="1"
+                required
+                className="w-40 border border-gray-300 rounded-lg px-4 py-2.5 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span className="text-sm text-gray-500">year{parseInt(form.minimumContractYears) !== 1 ? "s" : ""}</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Landlords cannot create contracts shorter than this. Current: <strong>{config.minimumContractYears} year{config.minimumContractYears !== 1 ? "s" : ""}</strong>
+            </p>
+          </div>
+
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg
+              disabled={saving}              className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg
                 text-sm font-semibold hover:bg-blue-900 transition disabled:opacity-50"
             >
               {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
