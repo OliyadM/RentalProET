@@ -43,12 +43,14 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 # Run the application with inline URL transformation
 ENTRYPOINT ["/bin/sh", "-c", "\
   if [ -n \"$DATABASE_URL\" ]; then \
+    echo \"Original DATABASE_URL: ${DATABASE_URL:0:30}...\"; \
     case \"$DATABASE_URL\" in \
       jdbc:*) export SPRING_DATASOURCE_URL=\"$DATABASE_URL\" ;; \
       postgresql://*) export SPRING_DATASOURCE_URL=\"jdbc:$DATABASE_URL\" ;; \
       postgres://*) export SPRING_DATASOURCE_URL=\"jdbc:postgresql://${DATABASE_URL#postgres://}\" ;; \
       *) export SPRING_DATASOURCE_URL=\"$DATABASE_URL\" ;; \
     esac; \
+    echo \"Transformed URL: ${SPRING_DATASOURCE_URL:0:50}...\"; \
     echo \"Database URL transformed\"; \
   fi; \
   exec java \
