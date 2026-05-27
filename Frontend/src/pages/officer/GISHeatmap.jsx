@@ -4,6 +4,7 @@ import { Layers, Filter, TrendingUp, AlertTriangle } from "lucide-react";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
 import { analyticsAPI } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import "leaflet/dist/leaflet.css";
 
 // Fix Leaflet default icon issue with Vite
