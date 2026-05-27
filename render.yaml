@@ -22,10 +22,17 @@ services:
       # Set after frontend deploy, e.g. https://rentalpro.vercel.app
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: rentalpro-db
-          property: connectionString
+      # Database credentials set manually in Render dashboard
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: rentalpro-db
+      #     property: connectionString
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
       - key: CLOUDINARY_ENABLED
         value: "false"
       - key: CLOUDINARY_CLOUD_NAME

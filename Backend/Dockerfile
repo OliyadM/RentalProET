@@ -40,24 +40,12 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/api/actuator/health || exit 1
 
-# Run the application with inline URL transformation
-ENTRYPOINT ["/bin/sh", "-c", "\
-  if [ -n \"$DATABASE_URL\" ]; then \
-    echo \"Original DATABASE_URL: ${DATABASE_URL:0:30}...\"; \
-    case \"$DATABASE_URL\" in \
-      jdbc:*) export SPRING_DATASOURCE_URL=\"$DATABASE_URL\" ;; \
-      postgresql://*) export SPRING_DATASOURCE_URL=\"jdbc:$DATABASE_URL\" ;; \
-      postgres://*) export SPRING_DATASOURCE_URL=\"jdbc:postgresql://${DATABASE_URL#postgres://}\" ;; \
-      *) export SPRING_DATASOURCE_URL=\"$DATABASE_URL\" ;; \
-    esac; \
-    echo \"Transformed URL: ${SPRING_DATASOURCE_URL:0:50}...\"; \
-    echo \"Database URL transformed\"; \
-  fi; \
-  exec java \
-    -Dspring.profiles.active=prod \
-    -Dserver.port=${PORT:-8080} \
-    -Djava.security.egd=file:/dev/./urandom \
-    -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -jar app.jar \
-"]
+# Run the application
+# RenderDatabaseConfig handles DATABASE_URL transformation
+ENTRYPOINT ["java", \
+    "-Dspring.profiles.active=prod", \
+    "-Dserver.port=${PORT:-8080}", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-jar", "app.jar"]
