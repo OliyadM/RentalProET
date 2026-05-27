@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   Home, Building, FileText, LogOut, BarChart2, AlertCircle,
-  Settings, Users, Globe, UserCircle,
+  Settings, Users, Globe, UserCircle, MapPin,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
@@ -25,6 +25,7 @@ const navByRole = {
     { label: "Contracts",   path: "/officer/contracts",   icon: FileText },
     { label: "Declarations",path: "/officer/declarations",icon: BarChart2 },
     { label: "Appeals",     path: "/officer/appeals",     icon: AlertCircle },
+    { label: "GIS Heatmap", path: "/officer/gis-heatmap", icon: MapPin },
     { label: "Verify Profiles", path: "/officer/profile-verification", icon: Users },
     { label: "My Profile",  path: "/profile",             icon: UserCircle },
   ],

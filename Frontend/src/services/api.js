@@ -217,6 +217,15 @@ export const analyticsAPI = {
     const response = await apiClient.get(`/analytics/benchmark/${propertyId}`);
     return response.data;
   },
+  // GIS Heatmap endpoints
+  getRentDensityHeatmap: async (filters = {}) => {
+    const response = await apiClient.get("/analytics/heatmap/rent-density", { params: filters });
+    return response.data;
+  },
+  getAnomalyConcentration: async (filters = {}) => {
+    const response = await apiClient.get("/analytics/heatmap/anomaly-concentration", { params: filters });
+    return response.data;
+  },
 };
 
 // ─── Admin ────────────────────────────────────────────────

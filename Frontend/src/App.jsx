@@ -23,12 +23,13 @@ import OfficerDashboard from "./pages/officer/Dashboard";
 import OfficerProperties from "./pages/officer/Properties";
 import OfficerDeclarations from "./pages/officer/Declarations";
 import OfficerAppeals from "./pages/officer/Appeals";
+import OfficerContracts from "./pages/officer/Contracts";
+import GISHeatmap from "./pages/officer/GISHeatmap";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import Profile from "./pages/Profile";
 import ProfileVerification from "./pages/officer/ProfileVerification";
-import OfficerContracts from "./pages/officer/Contracts";
 
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
@@ -67,16 +68,9 @@ export default function App() {
       <Route path="/officer/properties" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerProperties /></ProtectedRoute>} />
       <Route path="/officer/declarations" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerDeclarations /></ProtectedRoute>} />
       <Route path="/officer/appeals" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerAppeals /></ProtectedRoute>} />
-
-      {/* Administrator — isolated admin module */}
-      <Route path="/admin/dashboard" element={<ProtectedRoute roles={["ADMINISTRATOR"]}><AdminDashboard /></ProtectedRoute>} />
-
-      {/* Profile - accessible by all authenticated users */}
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-
-      {/* Profile Verification - Officer only */}
-      <Route path="/officer/profile-verification" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><ProfileVerification /></ProtectedRoute>} />
       <Route path="/officer/contracts" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><OfficerContracts /></ProtectedRoute>} />
+      <Route path="/officer/gis-heatmap" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><GISHeatmap /></ProtectedRoute>} />
+      <Route path="/officer/profile-verification" element={<ProtectedRoute roles={["SUBCITY_STAFF"]}><ProfileVerification /></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={
