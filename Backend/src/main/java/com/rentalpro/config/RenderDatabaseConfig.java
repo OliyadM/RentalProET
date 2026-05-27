@@ -1,6 +1,8 @@
 package com.rentalpro.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +18,7 @@ import javax.sql.DataSource;
  */
 @Configuration
 @Profile("prod")
+@AutoConfigureBefore(DataSourceAutoConfiguration.class)
 public class RenderDatabaseConfig {
 
     @Bean
@@ -25,13 +28,16 @@ public class RenderDatabaseConfig {
             @Value("${DATABASE_URL:}") String databaseUrl) {
         DataSourceProperties properties = new DataSourceProperties();
         
-        System.out.println("=== RenderDatabaseConfig ===");
-        System.out.println("DATABASE_URL: " + (databaseUrl != null && !databaseUrl.isBlank() ? "present" : "missing"));
+        System.out.println("=== RenderDatabaseConfig LOADED ===");
+        System.out.println("DATABASE_URL present: " + (databaseUrl != null && !databaseUrl.isBlank()));
+        System.out.println("DATABASE_URL value: " + (databaseUrl != null ? databaseUrl.substring(0, Math.min(50, databaseUrl.length())) + "..." : "NULL"));
         
         if (databaseUrl != null && !databaseUrl.isBlank()) {
             String jdbcUrl = toJdbcUrl(databaseUrl);
-            System.out.println("Transformed URL: " + jdbcUrl.substring(0, Math.min(30, jdbcUrl.length())) + "...");
+            System.out.println("Transformed JDBC URL: " + jdbcUrl.substring(0, Math.min(60, jdbcUrl.length())) + "...");
             properties.setUrl(jdbcUrl);
+        } else {
+            System.out.println("WARNING: DATABASE_URL is empty or null!");
         }
         properties.setDriverClassName("org.postgresql.Driver");
         return properties;
