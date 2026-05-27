@@ -5,7 +5,6 @@ server:
 
 spring:
   datasource:
-    url: ${DATABASE_URL}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
