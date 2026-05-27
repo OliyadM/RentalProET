@@ -27,9 +27,7 @@ function validate(form) {
   else if (!/[A-Za-z]/.test(form.password))      e.password    = "Password must contain at least one letter";
   else if (!/\d/.test(form.password))            e.password    = "Password must contain at least one number";
 
-  if (form.role === "SUBCITY_STAFF" && !form.subCityZone)
-                                                 e.subCityZone = "Sub-city zone is required for government officers";
-  if (form.role !== "SUBCITY_STAFF" && !form.subCityZone)
+  if (!form.subCityZone)
                                                  e.subCityZone = "Please select your sub-city";
   return e;
 }
@@ -216,7 +214,6 @@ export default function Register() {
             >
               <option value="LANDLORD">Landlord</option>
               <option value="TENANT">Tenant</option>
-              <option value="SUBCITY_STAFF">Government Officer</option>
             </select>
           </div>
 
