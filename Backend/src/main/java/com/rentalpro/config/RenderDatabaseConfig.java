@@ -11,10 +11,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 import javax.sql.DataSource;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
- * Render (and most PaaS providers) supply DATABASE_URL as {@code postgresql://...}.
- * Spring Boot requires {@code jdbc:postgresql://...}.
+ * Render (and most PaaS providers) supply DATABASE_URL as {@code postgresql://user:pass@host:port/db}.
+ * Spring Boot JDBC requires URL without credentials and separate username/password properties.
+ * This config parses the DATABASE_URL and sets up the DataSource correctly.
  */
 @Configuration
 @Profile("prod")
@@ -30,15 +33,26 @@ public class RenderDatabaseConfig {
         
         System.out.println("=== RenderDatabaseConfig LOADED ===");
         System.out.println("DATABASE_URL present: " + (databaseUrl != null && !databaseUrl.isBlank()));
-        System.out.println("DATABASE_URL value: " + (databaseUrl != null ? databaseUrl.substring(0, Math.min(50, databaseUrl.length())) + "..." : "NULL"));
         
         if (databaseUrl != null && !databaseUrl.isBlank()) {
-            String jdbcUrl = toJdbcUrl(databaseUrl);
-            System.out.println("Transformed JDBC URL: " + jdbcUrl.substring(0, Math.min(60, jdbcUrl.length())) + "...");
-            properties.setUrl(jdbcUrl);
+            try {
+                DatabaseUrlInfo info = parseDatabaseUrl(databaseUrl);
+                System.out.println("Parsed JDBC URL: " + info.jdbcUrl);
+                System.out.println("Parsed Username: " + info.username);
+                System.out.println("Password present: " + (info.password != null && !info.password.isEmpty()));
+                
+                properties.setUrl(info.jdbcUrl);
+                properties.setUsername(info.username);
+                properties.setPassword(info.password);
+            } catch (Exception e) {
+                System.err.println("ERROR parsing DATABASE_URL: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to parse DATABASE_URL", e);
+            }
         } else {
             System.out.println("WARNING: DATABASE_URL is empty or null!");
         }
+        
         properties.setDriverClassName("org.postgresql.Driver");
         return properties;
     }
@@ -49,16 +63,54 @@ public class RenderDatabaseConfig {
         return properties.initializeDataSourceBuilder().build();
     }
 
-    static String toJdbcUrl(String url) {
-        if (url.startsWith("jdbc:")) {
-            return url;
+    /**
+     * Parse DATABASE_URL in format: postgresql://user:pass@host:port/database
+     * Returns JDBC URL without credentials: jdbc:postgresql://host:port/database
+     */
+    static DatabaseUrlInfo parseDatabaseUrl(String databaseUrl) throws URISyntaxException {
+        // Handle jdbc: prefix if already present
+        if (databaseUrl.startsWith("jdbc:")) {
+            return new DatabaseUrlInfo(databaseUrl, null, null);
         }
-        if (url.startsWith("postgres://")) {
-            return "jdbc:postgresql://" + url.substring("postgres://".length());
+        
+        // Parse the URL
+        URI uri = new URI(databaseUrl);
+        
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        int port = uri.getPort() > 0 ? uri.getPort() : 5432; // Default PostgreSQL port
+        String database = uri.getPath();
+        if (database != null && database.startsWith("/")) {
+            database = database.substring(1);
         }
-        if (url.startsWith("postgresql://")) {
-            return "jdbc:postgresql://" + url.substring("postgresql://".length());
+        
+        // Extract username and password from userInfo
+        String username = null;
+        String password = null;
+        String userInfo = uri.getUserInfo();
+        if (userInfo != null) {
+            String[] parts = userInfo.split(":", 2);
+            username = parts[0];
+            if (parts.length > 1) {
+                password = parts[1];
+            }
         }
-        return url;
+        
+        // Build JDBC URL without credentials
+        String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", host, port, database);
+        
+        return new DatabaseUrlInfo(jdbcUrl, username, password);
+    }
+    
+    static class DatabaseUrlInfo {
+        final String jdbcUrl;
+        final String username;
+        final String password;
+        
+        DatabaseUrlInfo(String jdbcUrl, String username, String password) {
+            this.jdbcUrl = jdbcUrl;
+            this.username = username;
+            this.password = password;
+        }
     }
 }
