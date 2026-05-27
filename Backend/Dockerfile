@@ -33,6 +33,10 @@ USER spring:spring
 # Copy the built JAR from build stage
 COPY --from=build /app/target/rentalpro-backend-1.0.0.jar app.jar
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Expose port (Render will override with $PORT)
 EXPOSE 8080
 
@@ -40,12 +44,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/api/actuator/health || exit 1
 
-# Run the application
-ENTRYPOINT ["java", \
-  "-Dspring.profiles.active=prod", \
-  "-Dserver.port=${PORT:-8080}", \
-  "-Djava.security.egd=file:/dev/./urandom", \
-  "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
-  "-jar", \
-  "app.jar"]
+# Run the application via entrypoint script
+ENTRYPOINT ["/docker-entrypoint.sh"]

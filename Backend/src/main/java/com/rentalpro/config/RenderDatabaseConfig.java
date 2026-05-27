@@ -24,8 +24,14 @@ public class RenderDatabaseConfig {
     public DataSourceProperties dataSourceProperties(
             @Value("${DATABASE_URL:}") String databaseUrl) {
         DataSourceProperties properties = new DataSourceProperties();
+        
+        System.out.println("=== RenderDatabaseConfig ===");
+        System.out.println("DATABASE_URL: " + (databaseUrl != null && !databaseUrl.isBlank() ? "present" : "missing"));
+        
         if (databaseUrl != null && !databaseUrl.isBlank()) {
-            properties.setUrl(toJdbcUrl(databaseUrl));
+            String jdbcUrl = toJdbcUrl(databaseUrl);
+            System.out.println("Transformed URL: " + jdbcUrl.substring(0, Math.min(30, jdbcUrl.length())) + "...");
+            properties.setUrl(jdbcUrl);
         }
         properties.setDriverClassName("org.postgresql.Driver");
         return properties;
