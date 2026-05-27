@@ -37,7 +37,6 @@ public class RentalContractServiceImpl implements RentalContractService {
     private final AuditLogRepository auditLogRepository;
     private final NotificationService notificationService;
     private final AdminService adminService;
-    private final EmailService emailService;
 
     @Override
     public ContractResponse createContract(ContractRequest request, UUID landlordId) {
@@ -82,6 +81,13 @@ public class RentalContractServiceImpl implements RentalContractService {
         // Verify user is actually a tenant
         if (tenant.getRole() != UserRole.TENANT) {
             throw new RuntimeException("User with email '" + request.getTenantEmail() + "' is not registered as a tenant");
+        }
+
+        // Guard: tenant must be verified — unverified tenants cannot enter contracts
+        if (tenant.getAccountStatus() != com.rentalpro.model.enums.AccountStatus.VERIFIED) {
+            throw new RuntimeException(
+                "The tenant with email '" + request.getTenantEmail() + "' has not been verified yet. " +
+                "Please ask the tenant to complete their profile and wait for officer verification before creating a contract.");
         }
 
         RentalContract contract = RentalContract.builder()
@@ -204,6 +210,14 @@ public class RentalContractServiceImpl implements RentalContractService {
 
         if (contract.getStatus() != ContractStatus.PENDING_CONFIRMATION) {
             throw new RuntimeException("Contract is not pending confirmation");
+        }
+
+        // Guard: tenant must be verified before they can sign a contract
+        User tenant = contract.getTenant();
+        if (tenant.getAccountStatus() != com.rentalpro.model.enums.AccountStatus.VERIFIED) {
+            throw new RuntimeException(
+                "Your account must be verified before you can confirm a contract. " +
+                "Please complete your profile and wait for officer verification.");
         }
 
         // NEW FLOW: After tenant confirms, send to officer for review

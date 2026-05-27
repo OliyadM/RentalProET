@@ -22,6 +22,7 @@ CHECK (type IN (
     'DECLARATION_ANOMALY',
     
     -- Properties
+    'PROPERTY_PENDING_REVIEW',
     'PROPERTY_VERIFIED',
     
     -- Account lifecycle (NEW)

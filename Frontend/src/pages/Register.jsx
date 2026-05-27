@@ -29,6 +29,8 @@ function validate(form) {
 
   if (form.role === "SUBCITY_STAFF" && !form.subCityZone)
                                                  e.subCityZone = "Sub-city zone is required for government officers";
+  if (form.role !== "SUBCITY_STAFF" && !form.subCityZone)
+                                                 e.subCityZone = "Please select your sub-city";
   return e;
 }
 
@@ -77,7 +79,7 @@ export default function Register() {
         phoneNumber: form.phone.trim(),
         password:    form.password,
         role:        form.role,
-        subCityZone: form.role === "SUBCITY_STAFF" ? form.subCityZone : null,
+        subCityZone: form.subCityZone || null,
       };
       const user = await authAPI.register(registerData);
       login(user);
@@ -218,24 +220,22 @@ export default function Register() {
             </select>
           </div>
 
-          {/* Sub-city — only for officers */}
-          {form.role === "SUBCITY_STAFF" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sub-city Zone <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={form.subCityZone}
-                onChange={set("subCityZone")}
-                onBlur={() => blurValidate("subCityZone")}
-                className={inputClass("subCityZone")}
-              >
-                <option value="">Select sub-city</option>
-                {SUB_CITIES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <FieldError msg={errors.subCityZone} />
-            </div>
-          )}
+          {/* Sub-city — required for all roles */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sub-city Zone <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={form.subCityZone}
+              onChange={set("subCityZone")}
+              onBlur={() => blurValidate("subCityZone")}
+              className={inputClass("subCityZone")}
+            >
+              <option value="">Select your sub-city</option>
+              {SUB_CITIES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <FieldError msg={errors.subCityZone} />
+          </div>
 
           <button
             type="submit"

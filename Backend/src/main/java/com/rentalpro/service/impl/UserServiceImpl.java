@@ -3,22 +3,16 @@ package com.rentalpro.service.impl;
 import com.rentalpro.model.dto.request.ProfileUpdateRequest;
 import com.rentalpro.model.dto.request.ProfileVerificationRequest;
 import com.rentalpro.model.dto.request.RegisterRequest;
-import com.rentalpro.model.dto.response.AuthResponse;
 import com.rentalpro.model.dto.response.ProfileResponse;
 import com.rentalpro.model.entity.User;
 import com.rentalpro.model.enums.AccountStatus;
 import com.rentalpro.model.enums.EntityType;
 import com.rentalpro.model.enums.NotificationType;
 import com.rentalpro.repository.UserRepository;
-import com.rentalpro.security.JwtTokenProvider;
 import com.rentalpro.service.NotificationService;
 import com.rentalpro.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,13 +29,11 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
     private final NotificationService notificationService;
 
     @Override
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public User register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
@@ -63,7 +55,10 @@ public class UserServiceImpl implements UserService {
                 .entityType(EntityType.INDIVIDUAL)
                 .build();
 
-        userRepository.save(user);
+        // saveAndFlush ensures the INSERT is sent to the DB immediately so that
+        // the subsequent notificationService.send() can find this user by ID
+        // within the same transaction without hitting a constraint or stale-read.
+        user = userRepository.saveAndFlush(user);
 
         // REQ-1: Welcome notification — wrapped so failure never blocks registration
         try {
@@ -77,46 +72,14 @@ public class UserServiceImpl implements UserService {
             log.warn("Failed to send ACCOUNT_CREATED notification to user {}: {}", user.getId(), e.getMessage());
         }
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String token = jwtTokenProvider.generateToken(authentication);
-
-        return AuthResponse.builder()
-                .token(token)
-                .userId(user.getId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole())
-                .subCityZone(user.getSubCityZone())
-                .build();
+        return user;
     }
 
     @Override
-    public AuthResponse login(String email, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password)
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        User user = userRepository.findByEmail(email)
+    @Transactional(readOnly = true)
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        String token = jwtTokenProvider.generateToken(authentication);
-
-        return AuthResponse.builder()
-                .token(token)
-                .userId(user.getId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole())
-                .subCityZone(user.getSubCityZone())
-                .build();
     }
 
     @Override
@@ -163,18 +126,21 @@ public class UserServiceImpl implements UserService {
         // Update status to PENDING_VERIFICATION if profile is complete
         if (isProfileComplete(user)) {
             user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
+            // Must flush before sending notification so the updated status
+            // is visible to the REQUIRES_NEW notification transaction.
+            userRepository.saveAndFlush(user);
 
             // REQ-2: Fan-out to officers in the user's sub-city
-            // Guard: only fan out if the user has a sub-city assigned
-            if (user.getSubCityZone() != null && !user.getSubCityZone().isBlank()) {
+            String subCity = user.getSubCityZone();
+            if (subCity != null && !subCity.isBlank()) {
                 try {
                     String roleLabel = user.getRole().name().charAt(0)
                             + user.getRole().name().substring(1).toLowerCase().replace("_", " ");
                     String msg = String.format(
                             "%s %s (%s) has submitted their profile for verification in %s.",
-                            user.getFirstName(), user.getLastName(), roleLabel, user.getSubCityZone());
+                            user.getFirstName(), user.getLastName(), roleLabel, subCity);
                     notificationService.sendToSubCityOfficers(
-                            user.getSubCityZone(),
+                            subCity,
                             NotificationType.PROFILE_PENDING_REVIEW,
                             msg,
                             user.getId());
@@ -182,10 +148,13 @@ public class UserServiceImpl implements UserService {
                     log.warn("Failed to send PROFILE_PENDING_REVIEW notification for user {}: {}",
                             user.getId(), e.getMessage());
                 }
+            } else {
+                log.warn("User {} has no subCityZone — PROFILE_PENDING_REVIEW notification skipped. " +
+                         "Assign a sub-city to this user so officers can be notified.", user.getId());
             }
+        } else {
+            userRepository.save(user);
         }
-
-        userRepository.save(user);
 
         return mapToProfileResponse(user);
     }
@@ -231,7 +200,8 @@ public class UserServiceImpl implements UserService {
             user.setRejectionReason(null);
         }
 
-        userRepository.save(user);
+        // Flush before notification so the REQUIRES_NEW transaction sees the committed status
+        userRepository.saveAndFlush(user);
 
         // REQ-3 / REQ-4: Notify the user of the verification outcome
         try {

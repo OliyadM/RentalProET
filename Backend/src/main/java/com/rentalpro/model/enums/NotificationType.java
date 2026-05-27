@@ -15,6 +15,7 @@ public enum NotificationType {
     DECLARATION_ANOMALY,      // Anomaly detected on declaration → Officer notified
 
     // Properties
+    PROPERTY_PENDING_REVIEW,  // Landlord submitted property → Officers notified
     PROPERTY_VERIFIED,        // Officer verified property → Landlord notified
 
     // Account lifecycle

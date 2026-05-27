@@ -196,6 +196,7 @@ export default function ProfileVerification() {
       {/* Verification Modal */}
       {showModal && selectedProfile && (
         <Modal onClose={() => setShowModal(false)} title="Review Profile">
+          {/* Scrollable profile details */}
           <div className="space-y-6">
             {/* User Info */}
             <div>
@@ -333,7 +334,7 @@ export default function ProfileVerification() {
                   <textarea
                     value={verificationNotes}
                     onChange={(e) => setVerificationNotes(e.target.value)}
-                    rows={3}
+                    rows={2}
                     placeholder="Add any notes about this verification..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
@@ -347,7 +348,7 @@ export default function ProfileVerification() {
                     <textarea
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
-                      rows={3}
+                      rows={2}
                       required
                       placeholder="Explain why this profile is being rejected..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -357,19 +358,19 @@ export default function ProfileVerification() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            {/* Action Buttons — inside scroll area but always reachable by scrolling */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200 pb-1">
               <button
                 onClick={handleVerify}
                 disabled={!action || processing}
-                className="flex-1 px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processing ? "Processing..." : "Submit Decision"}
               </button>
               <button
                 onClick={() => setShowModal(false)}
                 disabled={processing}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>

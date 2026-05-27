@@ -80,31 +80,51 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         String message = "Operation failed due to data constraint violation";
-        String exceptionMessage = ex.getMessage();
-        
-        if (exceptionMessage != null) {
-            if (exceptionMessage.contains("users_email_key") || exceptionMessage.contains("uk_") && exceptionMessage.contains("email")) {
+        // Walk the full cause chain — the useful constraint name is usually in the root cause
+        String fullMessage = buildFullMessage(ex);
+
+        if (fullMessage != null) {
+            String lower = fullMessage.toLowerCase();
+            if (lower.contains("email")) {
                 message = "Email already registered";
-            } else if (exceptionMessage.contains("users_phone_number_key") || exceptionMessage.contains("uk_") && exceptionMessage.contains("phone")) {
+            } else if (lower.contains("phone") || lower.contains("phone_number")) {
                 message = "Phone number already registered";
-            } else if (exceptionMessage.contains("unique") || exceptionMessage.contains("duplicate")) {
+            } else if (lower.contains("national_id") || lower.contains("nationalid")) {
+                message = "National ID number already registered";
+            } else if (lower.contains("tin")) {
+                message = "TIN number already registered";
+            } else if (lower.contains("unique") || lower.contains("duplicate") || lower.contains("already exists")) {
                 message = "This record already exists";
-            } else if (exceptionMessage.contains("foreign key") || exceptionMessage.contains("violates foreign key constraint")) {
+            } else if (lower.contains("foreign key") || lower.contains("violates foreign key constraint")) {
                 message = "Cannot delete this record because it is referenced by other data";
-            } else if (exceptionMessage.contains("not-null") || exceptionMessage.contains("null value")) {
+            } else if (lower.contains("not-null") || lower.contains("null value") || lower.contains("violates not-null")) {
                 message = "Required field is missing";
             }
         }
-        
+
         // Log the actual error for debugging
-        System.err.println("DataIntegrityViolationException: " + exceptionMessage);
-        
+        System.err.println("DataIntegrityViolationException full chain: " + fullMessage);
+        ex.printStackTrace();
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(
                         HttpStatus.BAD_REQUEST.value(),
                         message,
                         LocalDateTime.now()
                 ));
+    }
+
+    /** Walk the full Throwable cause chain and concatenate all messages. */
+    private String buildFullMessage(Throwable ex) {
+        StringBuilder sb = new StringBuilder();
+        Throwable current = ex;
+        while (current != null) {
+            if (current.getMessage() != null) {
+                sb.append(current.getMessage()).append(" | ");
+            }
+            current = current.getCause();
+        }
+        return sb.length() > 0 ? sb.toString() : null;
     }
 
     /**

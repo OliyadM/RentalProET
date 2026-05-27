@@ -42,6 +42,7 @@ public class Appeal {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private AppealStatus status = AppealStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)

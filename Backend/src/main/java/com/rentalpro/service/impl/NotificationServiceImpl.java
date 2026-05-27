@@ -27,7 +27,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void send(UUID recipientId, NotificationType type, String message, UUID relatedEntityId) {
         User recipient = userRepository.findById(recipientId)
                 .orElseThrow(() -> new EntityNotFoundException("Recipient not found: " + recipientId));
@@ -45,7 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void sendToSubCityOfficers(String subCity, NotificationType type, String message, UUID relatedEntityId) {
         List<User> officers = notificationRepository.findUsersByRoleAndSubCity(UserRole.SUBCITY_STAFF, subCity);
 
