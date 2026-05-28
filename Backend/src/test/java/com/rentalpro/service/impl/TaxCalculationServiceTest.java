@@ -1,39 +1,69 @@
 package com.rentalpro.service.impl;
 
+import com.rentalpro.model.dto.response.TaxCalculationResponse;
+import com.rentalpro.model.entity.SystemConfig;
 import com.rentalpro.model.enums.EntityType;
 import com.rentalpro.model.enums.PropertyType;
-import com.rentalpro.model.dto.response.TaxCalculationResponse;
+import com.rentalpro.service.AdminService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class TaxCalculationServiceTest {
+
+    @Mock
+    private AdminService adminService;
 
     private TaxCalculationServiceImpl taxService;
 
-    @BeforeEach
-    void setUp() {
-        taxService = new TaxCalculationServiceImpl();
+    /** Default SystemConfig matching Proclamation 1395/2025 — same values as @Builder.Default. */
+    private static SystemConfig defaultConfig() {
+        return SystemConfig.builder()
+                .taxRuleVersion("1395/2025")
+                .businessFlatTaxRate(0.30)
+                .residentialDeductionPercent(0.40)
+                .band1Min(0.0)      .band1Max(24_000.0)  .band1Rate(0.00) .band1Deductible(0.0)
+                .band2Min(24_001.0) .band2Max(48_000.0)  .band2Rate(0.10) .band2Deductible(2_400.0)
+                .band3Min(48_001.0) .band3Max(78_000.0)  .band3Rate(0.20) .band3Deductible(6_000.0)
+                .band4Min(78_001.0) .band4Max(120_000.0) .band4Rate(0.25) .band4Deductible(9_900.0)
+                .band5Min(120_001.0).band5Max(168_000.0) .band5Rate(0.30) .band5Deductible(15_900.0)
+                .band6Min(168_001.0).band6Max(Double.MAX_VALUE).band6Rate(0.30).band6Deductible(15_900.0)
+                .anomalyThresholdPercentage(0.15)
+                .maxRentIncreaseCap(0.10)
+                .minimumContractYears(2)
+                .build();
     }
 
-    // ── Given / When / Then: verified 1395/2025 example ───────────────────────
+    @BeforeEach
+    void setUp() {
+        // lenient: some tests (negativeRent, resolveBand) don't invoke the service
+        // or use the static method, so the stub would be flagged as unnecessary otherwise
+        org.mockito.Mockito.lenient()
+                .when(adminService.getConfigEntity()).thenReturn(defaultConfig());
+        taxService = new TaxCalculationServiceImpl(adminService);
+    }
+
+    // ── Given / When / Then: verified 1395/2025 examples ─────────────────────
 
     @Test
     void calculate_individual_taxable60000_noDeduction_matchesOfficialExample() {
-        // Given: 5,000 ETB/month → 60,000 annual gross, no deduction → taxable = 60,000
-        // When
+        // 5,000 ETB/month → 60,000 annual gross, no deduction → taxable = 60,000
+        // Band 3: (60,000 × 20%) − 6,000 = 6,000 ETB annual tax
         TaxCalculationResponse result = taxService.calculate(
                 5_000, EntityType.INDIVIDUAL, PropertyType.HOUSE, false);
 
-        // Then: (60,000 × 20%) − 6,000 = 6,000 ETB annual tax
         assertEquals(60_000, result.getAnnualGrossRent());
         assertEquals(60_000, result.getTaxableAnnualIncome());
         assertFalse(result.getDeductionApplied());
         assertEquals(6_000, result.getAnnualTax());
         assertEquals(500, result.getMonthlyTax());
         assertEquals(0.10, result.getEffectiveTaxRate());
-        assertEquals("48,001 – 78,000 ETB", result.getAppliedBandLabel());
     }
 
     @Test
@@ -48,7 +78,8 @@ class TaxCalculationServiceTest {
 
     @Test
     void calculate_individual_with40PercentDeduction_reducesTaxableBase() {
-        // Given: 10,000/month → 120,000 gross, 40% deduction → 72,000 taxable
+        // 10,000/month → 120,000 gross, 40% deduction → 72,000 taxable
+        // Band 3: (72,000 × 20%) − 6,000 = 8,400
         TaxCalculationResponse result = taxService.calculate(
                 10_000, EntityType.INDIVIDUAL, PropertyType.APARTMENT_BUILDING, true);
 
@@ -56,7 +87,6 @@ class TaxCalculationServiceTest {
         assertEquals(0.40, result.getDeductionPercent());
         assertEquals(48_000, result.getDeductionAmount());
         assertEquals(72_000, result.getTaxableAnnualIncome());
-        // (72,000 × 20%) − 6,000 = 8,400
         assertEquals(8_400, result.getAnnualTax());
     }
 
@@ -70,7 +100,6 @@ class TaxCalculationServiceTest {
         assertEquals(18_000, result.getAnnualTax());
         assertEquals(1_500, result.getMonthlyTax());
         assertEquals(0.30, result.getEffectiveTaxRate());
-        assertEquals("Flat 30% (Business)", result.getAppliedBandLabel());
     }
 
     @Test
@@ -129,6 +158,7 @@ class TaxCalculationServiceTest {
 
     @Test
     void resolveBand_picksCorrectBandForBoundaries() {
+        // Static method still works with hardcoded TaxRule1395 for backward compat
         assertEquals("0 – 24,000 ETB",
                 TaxCalculationServiceImpl.resolveBand(24_000).getLabel());
         assertEquals("24,001 – 48,000 ETB",

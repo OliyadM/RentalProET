@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -13,14 +14,37 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SystemConfigResponse {
+
     private UUID id;
-    /** Tax rate as a percentage value for display: 0.10 → 10.0 */
-    private Double taxRatePercent;
-    /** Anomaly threshold as a percentage value for display: 0.15 → 15.0 */
+
+    // ── Platform settings ────────────────────────────────────────────────────
     private Double anomalyThresholdPercent;
-    /** Max rent increase cap as a percentage value for display: 0.10 → 10.0 */
     private Double maxRentIncreaseCapPercent;
-    /** Minimum contract duration in years. */
     private Integer minimumContractYears;
+
+    // ── Tax rule metadata ────────────────────────────────────────────────────
+    private String taxRuleVersion;
+
+    // ── Business flat rate (as %) ────────────────────────────────────────────
+    private Double businessFlatTaxRatePercent;
+
+    // ── Individual residential deduction (as %) ──────────────────────────────
+    private Double residentialDeductionPercent;
+
+    // ── Progressive tax bands ────────────────────────────────────────────────
+    private List<TaxBandResponse> taxBands;
+
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TaxBandResponse {
+        private Double minIncome;
+        private Double maxIncome;
+        private Double ratePercent;
+        private Double deductibleAmount;
+        private String label;
+    }
 }

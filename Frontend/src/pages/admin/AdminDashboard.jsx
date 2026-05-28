@@ -100,35 +100,69 @@ export default function AdminDashboard() {
 // ── Tab 1: System Configuration ───────────────────────────────────────────────
 function SystemConfigTab({ setToast }) {
   const [config, setConfig] = useState(null);
-  const [form, setForm] = useState({ taxRatePercent: "", anomalyThresholdPercent: "", maxRentIncreaseCapPercent: "", minimumContractYears: "" });
   const [saving, setSaving] = useState(false);
+
+  // Platform settings
+  const [anomalyThreshold, setAnomalyThreshold] = useState("");
+  const [maxRentCap, setMaxRentCap] = useState("");
+  const [minContractYears, setMinContractYears] = useState("");
+
+  // Tax rule metadata
+  const [taxRuleVersion, setTaxRuleVersion] = useState("");
+
+  // Business flat rate
+  const [businessRate, setBusinessRate] = useState("");
+
+  // Residential deduction
+  const [deductionPercent, setDeductionPercent] = useState("");
+
+  // Progressive bands — array of {minIncome, maxIncome, ratePercent, deductibleAmount}
+  const [bands, setBands] = useState([]);
 
   useEffect(() => {
     adminAPI.getConfig().then((data) => {
       setConfig(data);
-      setForm({
-        taxRatePercent:            String(data.taxRatePercent),
-        anomalyThresholdPercent:   String(data.anomalyThresholdPercent),
-        maxRentIncreaseCapPercent: String(data.maxRentIncreaseCapPercent),
-        minimumContractYears:      String(data.minimumContractYears ?? 2),
-      });
+      setAnomalyThreshold(String(data.anomalyThresholdPercent));
+      setMaxRentCap(String(data.maxRentIncreaseCapPercent));
+      setMinContractYears(String(data.minimumContractYears ?? 2));
+      setTaxRuleVersion(data.taxRuleVersion || "1395/2025");
+      setBusinessRate(String(data.businessFlatTaxRatePercent ?? 30));
+      setDeductionPercent(String(data.residentialDeductionPercent ?? 40));
+      setBands(data.taxBands?.map(b => ({
+        minIncome: String(b.minIncome),
+        maxIncome: b.maxIncome >= 1e17 ? "" : String(b.maxIncome),
+        ratePercent: String(b.ratePercent),
+        deductibleAmount: String(b.deductibleAmount),
+        label: b.label,
+      })) || []);
     });
   }, []);
 
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const updateBand = (idx, field, value) => {
+    setBands(prev => prev.map((b, i) => i === idx ? { ...b, [field]: value } : b));
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const updated = await adminAPI.updateConfig({
-        taxRatePercent:           parseFloat(form.taxRatePercent),
-        anomalyThresholdPercent:  parseFloat(form.anomalyThresholdPercent),
-        maxRentIncreaseCapPercent: parseFloat(form.maxRentIncreaseCapPercent),
-        minimumContractYears:     parseInt(form.minimumContractYears, 10),
-      });
+      const payload = {
+        anomalyThresholdPercent:  parseFloat(anomalyThreshold),
+        maxRentIncreaseCapPercent: parseFloat(maxRentCap),
+        minimumContractYears:     parseInt(minContractYears, 10),
+        taxRuleVersion,
+        businessFlatTaxRatePercent: parseFloat(businessRate),
+        residentialDeductionPercent: parseFloat(deductionPercent),
+        taxBands: bands.map((b, i) => ({
+          minIncome:       parseFloat(b.minIncome) || 0,
+          maxIncome:       i === bands.length - 1 ? 999999999 : parseFloat(b.maxIncome) || 0,
+          ratePercent:     parseFloat(b.ratePercent) || 0,
+          deductibleAmount: parseFloat(b.deductibleAmount) || 0,
+        })),
+      };
+      const updated = await adminAPI.updateConfig(payload);
       setConfig(updated);
-      setToast({ msg: "System configuration saved successfully", type: "success" });
+      setToast({ msg: "Tax configuration saved successfully", type: "success" });
     } catch (err) {
       const data = err.response?.data;
       const msg = typeof data === "object" && !data?.message
@@ -140,125 +174,156 @@ function SystemConfigTab({ setToast }) {
     }
   };
 
-  if (!config) {
+  if (!config || bands.length === 0) {
     return <div className="text-gray-400 text-sm py-8 text-center">Loading configuration...</div>;
   }
 
+  const inputCls = "border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
+
   return (
-    <div className="max-w-2xl">
-      <SectionCard title="Platform Parameters">
-        <p className="text-sm text-gray-500 mb-5">
-          Changes take effect immediately for all new declarations and benchmarks.
-          Existing records are not retroactively recalculated.
-        </p>
+    <div className="max-w-3xl">
+      <form onSubmit={handleSave} className="space-y-5">
 
-        <form onSubmit={handleSave} className="space-y-5">
-          {/* Tax Rate */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rent Tax Rate (%)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                value={form.taxRatePercent}
-                onChange={set("taxRatePercent")}
-                min="0" max="50" step="0.1"
-                required
-                className="w-40 border border-gray-300 rounded-lg px-4 py-2.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <span className="text-sm text-gray-500">%</span>
+        {/* ── Platform Settings ─────────────────────────────────────────── */}
+        <SectionCard title="Platform Settings">
+          <p className="text-xs text-gray-400 mb-4">Changes take effect immediately. Existing declarations are not retroactively recalculated.</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Anomaly Threshold (%)</label>
+              <input type="number" value={anomalyThreshold} onChange={e => setAnomalyThreshold(e.target.value)}
+                min="1" max="100" step="0.5" required className={inputCls + " w-full"} />
+              <p className="text-xs text-gray-400 mt-1">Declarations deviating more than this % from AI benchmark are flagged</p>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Applied to declared monthly rent to calculate estimated tax. Current: <strong>{config.taxRatePercent}%</strong>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Max Rent Increase Cap (%)</label>
+              <input type="number" value={maxRentCap} onChange={e => setMaxRentCap(e.target.value)}
+                min="0" max="100" step="0.5" required className={inputCls + " w-full"} />
+              <p className="text-xs text-gray-400 mt-1">Maximum allowed rent increase per renewal cycle</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Min Contract Duration (Years)</label>
+              <input type="number" value={minContractYears} onChange={e => setMinContractYears(e.target.value)}
+                min="1" max="10" step="1" required className={inputCls + " w-full"} />
+              <p className="text-xs text-gray-400 mt-1">Landlords cannot create shorter contracts</p>
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* ── Tax Rule Metadata ─────────────────────────────────────────── */}
+        <SectionCard title="Tax Rule Reference">
+          <div className="flex items-center gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Proclamation / Version</label>
+              <input type="text" value={taxRuleVersion} onChange={e => setTaxRuleVersion(e.target.value)}
+                placeholder="e.g. 1395/2025" required className={inputCls + " w-48"} />
+            </div>
+            <p className="text-xs text-gray-400 mt-4">
+              Stored on every declaration so auditors know which law was applied. Update this when a new proclamation takes effect.
             </p>
           </div>
+        </SectionCard>
 
-          {/* Anomaly Threshold */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Anomaly Detection Threshold (%)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                value={form.anomalyThresholdPercent}
-                onChange={set("anomalyThresholdPercent")}
-                min="1" max="100" step="0.5"
-                required
-                className="w-40 border border-gray-300 rounded-lg px-4 py-2.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <span className="text-sm text-gray-500">%</span>
+        {/* ── Business Entity Tax ───────────────────────────────────────── */}
+        <SectionCard title="Business Entity — Flat Tax Rate">
+          <div className="flex items-center gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Flat Rate (%)</label>
+              <div className="flex items-center gap-2">
+                <input type="number" value={businessRate} onChange={e => setBusinessRate(e.target.value)}
+                  min="0" max="100" step="0.5" required className={inputCls + " w-28"} />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Declarations deviating more than this % from the AI benchmark are flagged. Current: <strong>{config.anomalyThresholdPercent}%</strong>
+            <p className="text-xs text-gray-400 mt-4">
+              Applied to the full annual gross rent for landlords registered as a <strong>Business</strong> entity. No deductions apply.
             </p>
           </div>
+        </SectionCard>
 
-          {/* Max Rent Increase Cap */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Maximum Rent Increase Cap (%)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                value={form.maxRentIncreaseCapPercent}
-                onChange={set("maxRentIncreaseCapPercent")}
-                min="0" max="100" step="0.5"
-                required
-                className="w-40 border border-gray-300 rounded-lg px-4 py-2.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <span className="text-sm text-gray-500">%</span>
+        {/* ── Individual Residential Deduction ─────────────────────────── */}
+        <SectionCard title="Individual Entity — Residential Maintenance Deduction">
+          <div className="flex items-center gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Deduction (%)</label>
+              <div className="flex items-center gap-2">
+                <input type="number" value={deductionPercent} onChange={e => setDeductionPercent(e.target.value)}
+                  min="0" max="100" step="1" required className={inputCls + " w-28"} />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Maximum allowed rent increase per contract renewal cycle. Current: <strong>{config.maxRentIncreaseCapPercent}%</strong>
+            <p className="text-xs text-gray-400 mt-4">
+              Eligible property types: <strong>House, Apartment Building, Mixed-Use Building</strong>.<br/>
+              Formula: <code className="bg-gray-100 px-1 rounded text-xs">Taxable Income = Annual Gross − (Annual Gross × Deduction%)</code>
             </p>
           </div>
+        </SectionCard>
 
-          {/* Minimum Contract Duration */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Minimum Contract Duration (Years)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                value={form.minimumContractYears}
-                onChange={set("minimumContractYears")}
-                min="1" max="10" step="1"
-                required
-                className="w-40 border border-gray-300 rounded-lg px-4 py-2.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <span className="text-sm text-gray-500">year{parseInt(form.minimumContractYears) !== 1 ? "s" : ""}</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Landlords cannot create contracts shorter than this. Current: <strong>{config.minimumContractYears} year{config.minimumContractYears !== 1 ? "s" : ""}</strong>
-            </p>
+        {/* ── Progressive Tax Bands ─────────────────────────────────────── */}
+        <SectionCard title="Individual Entity — Progressive Tax Bands">
+          <p className="text-xs text-gray-400 mb-4">
+            Formula per band: <code className="bg-gray-100 px-1 rounded text-xs">Annual Tax = (Taxable Income × Rate%) − Deductible Amount</code>
+            <br/>The deductible amount ensures smooth transitions between brackets. Leave "Max Income" blank for the last (open-ended) band.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                <tr>
+                  <th className="px-3 py-2 text-left">Band</th>
+                  <th className="px-3 py-2 text-left">Min Income (ETB/year)</th>
+                  <th className="px-3 py-2 text-left">Max Income (ETB/year)</th>
+                  <th className="px-3 py-2 text-left">Rate (%)</th>
+                  <th className="px-3 py-2 text-left">Deductible (ETB)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {bands.map((band, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 font-medium text-gray-600">Band {idx + 1}</td>
+                    <td className="px-3 py-2">
+                      <input type="number" value={band.minIncome}
+                        onChange={e => updateBand(idx, "minIncome", e.target.value)}
+                        min="0" step="1" required className={inputCls + " w-36"} />
+                    </td>
+                    <td className="px-3 py-2">
+                      {idx === bands.length - 1
+                        ? <span className="text-gray-400 text-xs italic px-3">No limit (open-ended)</span>
+                        : <input type="number" value={band.maxIncome}
+                            onChange={e => updateBand(idx, "maxIncome", e.target.value)}
+                            min="0" step="1" required className={inputCls + " w-36"} />
+                      }
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <input type="number" value={band.ratePercent}
+                          onChange={e => updateBand(idx, "ratePercent", e.target.value)}
+                          min="0" max="100" step="0.5" required className={inputCls + " w-20"} />
+                        <span className="text-gray-400">%</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <input type="number" value={band.deductibleAmount}
+                        onChange={e => updateBand(idx, "deductibleAmount", e.target.value)}
+                        min="0" step="1" required className={inputCls + " w-28"} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </SectionCard>
 
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={saving}              className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg
-                text-sm font-semibold hover:bg-blue-900 transition disabled:opacity-50"
-            >
-              {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
-              {saving ? "Saving..." : "Save Configuration"}
-            </button>
-          </div>
-        </form>
-      </SectionCard>
-
-      {config.updatedAt && (
-        <p className="text-xs text-gray-400 text-right">
-          Last updated: {fmtDate(config.updatedAt)}
-        </p>
-      )}
+        {/* ── Save ─────────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={saving}
+            className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-900 transition disabled:opacity-50">
+            {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
+            {saving ? "Saving..." : "Save All Configuration"}
+          </button>
+          {config.updatedAt && (
+            <p className="text-xs text-gray-400">Last updated: {fmtDate(config.updatedAt)}</p>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

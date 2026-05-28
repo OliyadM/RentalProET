@@ -43,18 +43,32 @@ public class AdminServiceImpl implements AdminService {
     public SystemConfigResponse updateConfig(SystemConfigRequest request) {
         SystemConfig config = getOrCreateConfig();
 
-        // Frontend sends percentage values (e.g. 10.0); store as fractions (0.10)
-        config.setTaxRate(request.getTaxRatePercent() / 100.0);
         config.setAnomalyThresholdPercentage(request.getAnomalyThresholdPercent() / 100.0);
         config.setMaxRentIncreaseCap(request.getMaxRentIncreaseCapPercent() / 100.0);
         config.setMinimumContractYears(request.getMinimumContractYears());
+        config.setTaxRuleVersion(request.getTaxRuleVersion());
+        config.setBusinessFlatTaxRate(request.getBusinessFlatTaxRatePercent() / 100.0);
+        config.setResidentialDeductionPercent(request.getResidentialDeductionPercent() / 100.0);
+
+        var bands = request.getTaxBands();
+        config.setBand1Min(bands.get(0).getMinIncome());  config.setBand1Max(bands.get(0).getMaxIncome());
+        config.setBand1Rate(bands.get(0).getRatePercent() / 100.0); config.setBand1Deductible(bands.get(0).getDeductibleAmount());
+        config.setBand2Min(bands.get(1).getMinIncome());  config.setBand2Max(bands.get(1).getMaxIncome());
+        config.setBand2Rate(bands.get(1).getRatePercent() / 100.0); config.setBand2Deductible(bands.get(1).getDeductibleAmount());
+        config.setBand3Min(bands.get(2).getMinIncome());  config.setBand3Max(bands.get(2).getMaxIncome());
+        config.setBand3Rate(bands.get(2).getRatePercent() / 100.0); config.setBand3Deductible(bands.get(2).getDeductibleAmount());
+        config.setBand4Min(bands.get(3).getMinIncome());  config.setBand4Max(bands.get(3).getMaxIncome());
+        config.setBand4Rate(bands.get(3).getRatePercent() / 100.0); config.setBand4Deductible(bands.get(3).getDeductibleAmount());
+        config.setBand5Min(bands.get(4).getMinIncome());  config.setBand5Max(bands.get(4).getMaxIncome());
+        config.setBand5Rate(bands.get(4).getRatePercent() / 100.0); config.setBand5Deductible(bands.get(4).getDeductibleAmount());
+        config.setBand6Min(bands.get(5).getMinIncome());  config.setBand6Max(bands.get(5).getMaxIncome());
+        config.setBand6Rate(bands.get(5).getRatePercent() / 100.0); config.setBand6Deductible(bands.get(5).getDeductibleAmount());
 
         SystemConfig saved = configRepository.save(config);
-        log.info("SystemConfig updated — taxRate={}% anomalyThreshold={}% rentCap={}%",
-                request.getTaxRatePercent(),
-                request.getAnomalyThresholdPercent(),
-                request.getMaxRentIncreaseCapPercent());
-
+        log.info("SystemConfig updated — version={} businessRate={}% deduction={}%",
+                request.getTaxRuleVersion(),
+                request.getBusinessFlatTaxRatePercent(),
+                request.getResidentialDeductionPercent());
         return mapConfigToResponse(saved);
     }
 
@@ -138,13 +152,37 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private SystemConfigResponse mapConfigToResponse(SystemConfig c) {
+        var bands = List.of(
+            bandResp(c.getBand1Min(), c.getBand1Max(), c.getBand1Rate(), c.getBand1Deductible()),
+            bandResp(c.getBand2Min(), c.getBand2Max(), c.getBand2Rate(), c.getBand2Deductible()),
+            bandResp(c.getBand3Min(), c.getBand3Max(), c.getBand3Rate(), c.getBand3Deductible()),
+            bandResp(c.getBand4Min(), c.getBand4Max(), c.getBand4Rate(), c.getBand4Deductible()),
+            bandResp(c.getBand5Min(), c.getBand5Max(), c.getBand5Rate(), c.getBand5Deductible()),
+            bandResp(c.getBand6Min(), c.getBand6Max(), c.getBand6Rate(), c.getBand6Deductible())
+        );
         return SystemConfigResponse.builder()
                 .id(c.getId())
-                .taxRatePercent(c.getTaxRate() * 100.0)
                 .anomalyThresholdPercent(c.getAnomalyThresholdPercentage() * 100.0)
                 .maxRentIncreaseCapPercent(c.getMaxRentIncreaseCap() * 100.0)
                 .minimumContractYears(c.getMinimumContractYears())
+                .taxRuleVersion(c.getTaxRuleVersion())
+                .businessFlatTaxRatePercent(c.getBusinessFlatTaxRate() * 100.0)
+                .residentialDeductionPercent(c.getResidentialDeductionPercent() * 100.0)
+                .taxBands(bands)
                 .updatedAt(c.getUpdatedAt())
+                .build();
+    }
+
+    private SystemConfigResponse.TaxBandResponse bandResp(
+            double min, double max, double rate, double deductible) {
+        String label = max >= 999_999_999
+                ? String.format("Above ETB %.0f", min - 1)
+                : String.format("ETB %.0f – %.0f", min, max);
+        return SystemConfigResponse.TaxBandResponse.builder()
+                .minIncome(min).maxIncome(max)
+                .ratePercent(rate * 100.0)
+                .deductibleAmount(deductible)
+                .label(label)
                 .build();
     }
 
