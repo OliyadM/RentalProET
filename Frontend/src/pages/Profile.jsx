@@ -328,7 +328,7 @@ export default function Profile() {
                   />
                   {editing && (
                     <p className="text-xs text-gray-400 mt-1">
-                      FAN (Fayyadamaa Abbaa Namaa) — must be exactly 16 digits
+                      FAN (Fayda Alliance Number) — must be exactly 16 digits
                     </p>
                   )}
                   <FieldError msg={fieldErrors.nationalIdNumber} />
