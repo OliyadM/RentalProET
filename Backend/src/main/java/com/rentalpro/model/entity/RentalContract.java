@@ -80,8 +80,10 @@ public class RentalContract {
     @Column(length = 2000)
     private String additionalClauses; // Replaces termsAndConditions
 
+    @Column(columnDefinition = "TEXT")
     private String tenantSignature;
 
+    @Column(columnDefinition = "TEXT")
     private String landlordSignature;
 
     private LocalDateTime tenantConfirmedAt;

@@ -1,11 +1,11 @@
-// Tenant Contract Detail will go here
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FileText, AlertTriangle } from "lucide-react";
 import Layout from "../../components/Layout";
 import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import Modal from "../../components/Modal";
+import SignaturePad from "../../components/SignaturePad";
 import { contractsAPI, declarationsAPI } from "../../services/api";
 import { fmtDate } from "../../utils/dateUtils";
 import { openContractPrintView } from "../../utils/contractPdf";
@@ -20,7 +20,7 @@ export default function TenantContractDetail() {
   const [toast, setToast] = useState(null);
   const [showReject, setShowReject] = useState(false);
   const [rejReason, setRejReason] = useState("");
-  const [signature, setSignature] = useState("");
+  const [signature, setSignature] = useState(null); // Base64 PNG from SignaturePad
 
   useEffect(() => {
     contractsAPI.getById(id).then(setContract);
@@ -28,8 +28,8 @@ export default function TenantContractDetail() {
   }, [id]);
 
   const confirm = async () => {
-    if (!signature.trim()) {
-      setToast({ msg: "Please type your full name as signature", type: "error" });
+    if (!signature) {
+      setToast({ msg: "Please draw your signature before confirming", type: "error" });
       return;
     }
     try {
@@ -157,10 +157,13 @@ export default function TenantContractDetail() {
         {contract.status === "PENDING_CONFIRMATION" && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-5">
             <h3 className="font-semibold text-gray-800 mb-3">Action Required — Confirm This Contract</h3>
-            <p className="text-sm text-gray-600 mb-4">Review the contract details above. Type your full name below to confirm.</p>
-            <input value={signature} onChange={e => setSignature(e.target.value)}
-              placeholder="Type your full name as digital signature"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary mb-4" />
+            <p className="text-sm text-gray-600 mb-4">
+              Review the contract details above. Draw your signature below to confirm.
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Your Signature</label>
+              <SignaturePad onChange={setSignature} />
+            </div>
             <div className="flex gap-3">
               <button onClick={confirm}
                 className="flex-1 bg-success text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700">
@@ -171,6 +174,25 @@ export default function TenantContractDetail() {
                 ✗ Reject Contract
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Recorded signature — shown after tenant has signed */}
+        {contract.tenantSignature && contract.status !== "PENDING_CONFIRMATION" && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-5">
+            <h3 className="font-semibold text-gray-800 mb-3">Your Recorded Signature</h3>
+            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 inline-block">
+              <img
+                src={contract.tenantSignature}
+                alt="Tenant signature"
+                className="max-h-24 max-w-xs"
+              />
+            </div>
+            {contract.tenantConfirmedAt && (
+              <p className="text-xs text-gray-400 mt-2">
+                Signed on {fmtDate(contract.tenantConfirmedAt)}
+              </p>
+            )}
           </div>
         )}
 

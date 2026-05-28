@@ -6,6 +6,7 @@ import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import { contractsAPI } from "../../services/api";
 import { fmtDate } from "../../utils/dateUtils";
+import { openContractPrintView } from "../../utils/contractPdf";
 
 const SUB_CITIES = [
   "Addis Ketema", "Akaky Kaliti", "Arada", "Bole", "Gullele",
@@ -233,18 +234,41 @@ export default function OfficerContracts() {
               </div>
             )}
 
-            {viewing.contractDocumentUrl && (
-              <div>
-                <p className="text-gray-500 text-xs mb-2">Contract Document</p>
+            {/* Tenant signature — key evidence for officer review */}
+            {viewing.tenantSignature && (
+              <div className="pb-3 border-b border-gray-100">
+                <p className="text-gray-500 text-xs uppercase mb-2">Tenant Signature</p>
+                <div className="border border-gray-200 rounded-lg p-2 bg-gray-50 inline-block">
+                  <img
+                    src={viewing.tenantSignature}
+                    alt="Tenant signature"
+                    className="max-h-20 max-w-xs"
+                  />
+                </div>
+                {viewing.tenantConfirmedAt && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Signed: {fmtDate(viewing.tenantConfirmedAt)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => openContractPrintView(viewing)}
+                className="flex items-center gap-2 text-primary text-sm hover:underline">
+                <FileText size={14} /> View Full Contract
+              </button>
+              {viewing.contractDocumentUrl && (
                 <a
                   href={viewing.contractDocumentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-primary text-sm hover:underline">
-                  <FileText size={14} /> View Contract PDF
+                  className="flex items-center gap-2 text-gray-500 text-sm hover:underline ml-4">
+                  <FileText size={14} /> Uploaded Document
                 </a>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <button
             onClick={() => setViewing(null)}

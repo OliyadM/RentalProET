@@ -96,6 +96,23 @@ export default function LandlordContractDetail() {
             </div>
           )}
 
+          {/* Tenant signature — visible to landlord once tenant has signed */}
+          {contract.tenantSignature && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-xs text-gray-500 mb-2">Tenant Signature</p>
+              <img
+                src={contract.tenantSignature}
+                alt="Tenant signature"
+                className="max-h-20 max-w-xs border border-gray-200 rounded bg-white p-1"
+              />
+              {contract.tenantConfirmedAt && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Signed on {fmtDate(contract.tenantConfirmedAt)}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="mt-4 flex gap-2">
             {contract.status === "DRAFT" && (
               <button

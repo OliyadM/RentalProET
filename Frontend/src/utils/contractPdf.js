@@ -95,7 +95,11 @@ export function openContractPrintView(contract) {
     <div class="sig-block">
       <div class="name">${contract.tenantName}</div>
       <div class="role">Tenant (Lessee)</div>
-      ${contract.tenantSignature ? `<div class="signed">Digital Signature: ${contract.tenantSignature}</div>` : ""}
+      ${contract.tenantSignature && contract.tenantSignature.startsWith("data:image")
+        ? `<img src="${contract.tenantSignature}" style="max-height:60px; margin-top:6px; border:1px solid #eee; border-radius:4px;" alt="Tenant signature" />`
+        : contract.tenantSignature
+          ? `<div class="signed">Digital Signature: ${contract.tenantSignature}</div>`
+          : ""}
       ${contract.tenantConfirmedAt ? `<div class="signed">Confirmed: ${fmtDate(contract.tenantConfirmedAt)}</div>` : ""}
     </div>
   </div>
