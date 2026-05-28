@@ -160,6 +160,12 @@ export const declarationsAPI = {
     });
     return response.data;
   },
+  reject: async (id, reason) => {
+    const response = await apiClient.put(`/declarations/${id}/reject`, null, {
+      params: { reason }
+    });
+    return response.data;
+  },
   downloadTaxSummaryPdf: async (declarationId) => {
     const response = await apiClient.get(`/declarations/${declarationId}/tax-summary.pdf`, {
       responseType: "blob",

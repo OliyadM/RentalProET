@@ -83,6 +83,11 @@ public class RentDeclaration {
 
     private String verificationNotes;
 
+    @Builder.Default
+    private Boolean isRejected = false;
+
+    private String rejectionReason;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

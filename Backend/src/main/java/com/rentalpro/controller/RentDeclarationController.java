@@ -94,9 +94,17 @@ public class RentDeclarationController {
     public ResponseEntity<RentDeclarationResponse> verifyDeclaration(
             @PathVariable UUID declarationId,
             @RequestParam(required = false) String notes) {
-
         User currentUser = getCurrentUser();
         return ResponseEntity.ok(declarationService.verifyDeclaration(declarationId, notes, currentUser.getId()));
+    }
+
+    @PutMapping("/{declarationId}/reject")
+    @PreAuthorize("hasAnyRole('SUBCITY_STAFF', 'ADMINISTRATOR')")
+    public ResponseEntity<RentDeclarationResponse> rejectDeclaration(
+            @PathVariable UUID declarationId,
+            @RequestParam String reason) {
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(declarationService.rejectDeclaration(declarationId, reason, currentUser.getId()));
     }
 
     private User getCurrentUser() {

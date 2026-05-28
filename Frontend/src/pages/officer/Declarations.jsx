@@ -30,6 +30,8 @@ export default function OfficerDeclarations() {
   const [toast, setToast] = useState(null);
   const [verifying, setVerifying] = useState(null);
   const [notes, setNotes] = useState("");
+  const [rejecting, setRejecting] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -46,12 +48,37 @@ export default function OfficerDeclarations() {
     setToast("Declaration verified");
   };
 
+  const reject = async () => {
+    if (!rejectReason.trim()) {
+      setToast("Rejection reason is required");
+      return;
+    }
+    await declarationsAPI.reject(rejecting.id, rejectReason);
+    setDeclarations(prev => prev.map(d => d.id === rejecting.id ? { ...d, isRejected: true } : d));
+    setRejecting(null);
+    setRejectReason("");
+    setToast("Declaration rejected — landlord has been notified");
+  };
+
   const getAnomalyBadge = (d) => {
     if (!d.isAnomaly) return null;
-    const pct = Math.abs(((d.declaredRent - d.aiBenchmarkRent) / d.aiBenchmarkRent) * 100);
-    const level = pct > 40 ? "HIGH" : pct > 20 ? "MEDIUM" : "LOW";
+    // Use new severity field if available, else compute from deviation
+    const level = d.anomalySeverity || (() => {
+      const pct = Math.abs(((d.declaredRent - d.aiBenchmarkRent) / d.aiBenchmarkRent) * 100);
+      return pct > 40 ? "HIGH" : pct > 20 ? "MEDIUM" : "LOW";
+    })();
     const colors = { HIGH: "bg-red-100 text-red-800", MEDIUM: "bg-orange-100 text-orange-800", LOW: "bg-yellow-100 text-yellow-800" };
-    return <span className={`text-xs font-semibold px-2 py-1 rounded-full ${colors[level]}`}>{level}</span>;
+    const dir = d.anomalyDirection === "UNDER_REPORTED" ? "↓" : d.anomalyDirection === "OVER_REPORTED" ? "↑" : "";
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${colors[level]}`}>{dir} {level}</span>
+        {d.anomalyDirection && (
+          <span className="text-xs text-gray-400">
+            {d.anomalyDirection === "UNDER_REPORTED" ? "Under-reported" : "Over-reported"}
+          </span>
+        )}
+      </div>
+    );
   };
 
   const exportCompliancePdf = async () => {
@@ -82,6 +109,33 @@ export default function OfficerDeclarations() {
               className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancel</button>
             <button onClick={verify}
               className="flex-1 bg-success text-white py-2 rounded-lg text-sm font-medium">Confirm Verification</button>
+          </div>
+        </Modal>
+      )}
+
+      {rejecting && (
+        <Modal title="Reject Declaration" onClose={() => { setRejecting(null); setRejectReason(""); }}>
+          <p className="text-sm text-gray-600 mb-1">
+            Declared rent: <strong>ETB {rejecting.declaredRent?.toLocaleString()}</strong>
+            {rejecting.isAnomaly && (
+              <span className="ml-2 text-xs text-danger font-medium">
+                ({rejecting.anomalySeverity || "Anomaly"} — {rejecting.anomalyDirection === "UNDER_REPORTED" ? "Under-reported" : "Over-reported"})
+              </span>
+            )}
+          </p>
+          <p className="text-sm text-gray-600 mb-3">Provide a reason for rejection (required):</p>
+          <textarea
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            rows={3}
+            placeholder="e.g. Declared rent is significantly below market rate. Possible tax evasion."
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none mb-4"
+          />
+          <div className="flex gap-3">
+            <button onClick={() => { setRejecting(null); setRejectReason(""); }}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancel</button>
+            <button onClick={reject}
+              className="flex-1 bg-danger text-white py-2 rounded-lg text-sm font-medium">Reject Declaration</button>
           </div>
         </Modal>
       )}
@@ -149,6 +203,11 @@ export default function OfficerDeclarations() {
                   </td>
                   <td className="px-6 py-4">
                     {d.isAnomaly ? getAnomalyBadge(d) : <span className="text-success text-xs">Clean</span>}
+                    {d.isRejected && d.rejectionReason && (
+                      <p className="text-xs text-danger mt-1" title={d.rejectionReason}>
+                        Rejected: {d.rejectionReason.length > 40 ? d.rejectionReason.substring(0, 40) + "…" : d.rejectionReason}
+                      </p>
+                    )}
                   </td>
                   <td className="px-6 py-4 font-medium text-primary">{fmt(d.estimatedTax)}</td>
                   <td className="px-6 py-4">{d.annualTax != null ? fmt(d.annualTax) : "N/A"}</td>
@@ -162,13 +221,22 @@ export default function OfficerDeclarations() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {!d.isVerified && (
-                      <button onClick={() => setVerifying(d)}
-                        className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-900">
-                        Verify
-                      </button>
+                    {d.isVerified ? (
+                      <span className="text-success text-xs font-medium">✓ Verified</span>
+                    ) : d.isRejected ? (
+                      <span className="text-danger text-xs font-medium">✗ Rejected</span>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button onClick={() => setVerifying(d)}
+                          className="bg-success text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700">
+                          Verify
+                        </button>
+                        <button onClick={() => setRejecting(d)}
+                          className="bg-danger text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-700">
+                          Reject
+                        </button>
+                      </div>
                     )}
-                    {d.isVerified && <span className="text-success text-xs font-medium">Verified</span>}
                   </td>
                 </tr>
               );

@@ -27,7 +27,7 @@ const statusIcons = {
 };
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshAccountStatus } = useAuth();
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,6 +54,11 @@ export default function Profile() {
       setLoading(true);
       const data = await profileAPI.getMyProfile();
       setProfile(data);
+      // Sync accountStatus into the auth context so property/contract guards
+      // reflect the current verification state without requiring re-login
+      if (data.accountStatus && data.accountStatus !== user?.accountStatus) {
+        refreshAccountStatus(data.accountStatus);
+      }
       setForm({
         dateOfBirth: data.dateOfBirth || "",
         residentialAddress: data.residentialAddress || "",

@@ -22,4 +22,6 @@ public interface RentDeclarationService {
     RentDeclarationResponse getDeclarationById(UUID declarationId);
     // New
     RentDeclarationResponse verifyDeclaration(UUID declarationId, String notes, UUID staffId);
+
+    RentDeclarationResponse rejectDeclaration(UUID declarationId, String reason, UUID staffId);
 }

@@ -280,6 +280,51 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
         return mapToResponse(saved);
     }
 
+    @Override
+    @Transactional
+    public RentDeclarationResponse rejectDeclaration(UUID declarationId, String reason, UUID staffId) {
+        RentDeclaration declaration = declarationRepository.findById(declarationId)
+                .orElseThrow(() -> new RuntimeException("Declaration not found"));
+
+        if (Boolean.TRUE.equals(declaration.getIsVerified())) {
+            throw new IllegalStateException("Cannot reject a declaration that has already been verified.");
+        }
+        if (Boolean.TRUE.equals(declaration.getIsRejected())) {
+            throw new IllegalStateException("This declaration has already been rejected.");
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Rejection reason is required.");
+        }
+
+        declaration.setIsRejected(true);
+        declaration.setRejectionReason(reason);
+
+        RentDeclaration saved = declarationRepository.save(declaration);
+
+        auditLogService.logAction("REJECT_DECLARATION", "RentDeclaration", saved.getId(),
+                null, "Rejected: " + reason);
+
+        // Notify the landlord that their declaration was rejected
+        try {
+            RentalContract contract = saved.getContract();
+            String msg = String.format(
+                    "Your rent declaration of ETB %.0f for %s (period: %s) was rejected by an officer. Reason: %s",
+                    saved.getDeclaredRent(),
+                    contract.getPropertyAddress(),
+                    saved.getDeclarationPeriod().toString(),
+                    reason);
+            notificationService.send(
+                    contract.getLandlord().getId(),
+                    NotificationType.DECLARATION_REJECTED,
+                    msg,
+                    saved.getId());
+        } catch (Exception e) {
+            log.warn("Failed to notify landlord of declaration rejection {}: {}", saved.getId(), e.getMessage());
+        }
+
+        return mapToResponse(saved);
+    }
+
     private RentDeclarationResponse mapToResponse(RentDeclaration d) {
         TaxCalculationResponse taxDetails = TaxCalculationResponse.builder()
                 .monthlyGrossRent(d.getDeclaredRent())
@@ -323,6 +368,8 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
                 .taxAdvisoryNote(d.getTaxAdvisoryNote())
                 .taxDetails(taxDetails)
                 .isVerified(d.getIsVerified())
+                .isRejected(d.getIsRejected())
+                .rejectionReason(d.getRejectionReason())
                 .createdAt(d.getCreatedAt())
                 .build();
     }

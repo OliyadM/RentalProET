@@ -44,6 +44,7 @@ public class AuthController {
                 .lastName(user.getLastName())
                 .role(user.getRole())
                 .subCityZone(user.getSubCityZone())
+                .accountStatus(user.getAccountStatus())
                 .build());
     }
 
@@ -64,6 +65,7 @@ public class AuthController {
                 .lastName(user.getLastName())
                 .role(user.getRole())
                 .subCityZone(user.getSubCityZone())
+                .accountStatus(user.getAccountStatus())
                 .build());
     }
 }

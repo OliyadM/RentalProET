@@ -44,5 +44,7 @@ public class RentDeclarationResponse {
     /** Full tax breakdown for landlord/officer views. */
     private TaxCalculationResponse taxDetails;
     private Boolean isVerified;
+    private Boolean isRejected;
+    private String rejectionReason;
     private LocalDateTime createdAt;
 }
