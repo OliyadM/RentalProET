@@ -8,7 +8,7 @@ spring:
     name: rentalpro-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/rentalpro_db
+    url: jdbc:postgresql://localhost:5432/rentalpro_db
     username: postgres
     password: Mikias@123
     driver-class-name: org.postgresql.Driver

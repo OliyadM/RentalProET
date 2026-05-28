@@ -13,6 +13,8 @@ public enum NotificationType {
 
     // Declarations
     DECLARATION_ANOMALY,      // Anomaly detected on declaration → Officer notified
+    DECLARATION_SUBMITTED,    // Landlord submitted declaration → Officers notified
+    DECLARATION_VERIFIED,     // Officer verified declaration → Landlord notified
 
     // Properties
     PROPERTY_PENDING_REVIEW,  // Landlord submitted property → Officers notified

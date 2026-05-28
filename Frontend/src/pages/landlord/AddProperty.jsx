@@ -1,5 +1,5 @@
 // Add Property will go here
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import Toast from "../../components/Toast";
@@ -14,6 +14,13 @@ export default function AddProperty() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
+
+  // Guard: redirect unverified landlords immediately
+  useEffect(() => {
+    if (user && user.accountStatus !== "VERIFIED") {
+      navigate("/landlord/properties", { replace: true });
+    }
+  }, [user, navigate]);
   const [form, setForm] = useState({
     propertyName: "", address: "", subCity: "Bole", woreda: "", kebele: "",
     siteDesignation: "Residential",

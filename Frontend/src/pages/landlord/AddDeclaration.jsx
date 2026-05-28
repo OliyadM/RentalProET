@@ -68,6 +68,7 @@ export default function AddDeclaration() {
           setContext({
             entityType: profile.entityType || "INDIVIDUAL",
             propertyType: property.propertyType,
+            contractedRent: contract.monthlyRent,
           });
         }
       } catch {
@@ -137,6 +138,10 @@ export default function AddDeclaration() {
       setError("Declared rent must be greater than zero.");
       return;
     }
+    if (context?.contractedRent && Number(rent) < context.contractedRent) {
+      setError(`Declared rent cannot be less than the contracted amount of ETB ${context.contractedRent.toLocaleString()}.`);
+      return;
+    }
     setLoading(true);
     try {
       const declaration = await declarationsAPI.create(
@@ -146,6 +151,10 @@ export default function AddDeclaration() {
         claimDeduction
       );
       setResult(declaration);
+      // Scroll to results panel so it's immediately visible
+      setTimeout(() => {
+        document.getElementById("declaration-result")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (error) {
       setError(error.message || "Failed to submit declaration.");
     } finally {
@@ -181,6 +190,7 @@ export default function AddDeclaration() {
         <p className="text-gray-500 text-sm mb-6">Declare rent for the selected period</p>
 
         <div className="bg-white rounded-xl shadow-sm p-6 mb-5">
+          {!result && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
@@ -197,6 +207,11 @@ export default function AddDeclaration() {
               <input type="number" value={rent} onChange={e => setRent(e.target.value)} required min="1"
                 placeholder="Enter rent amount"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              {context?.contractedRent && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Contracted rent: <span className="font-medium text-gray-700">ETB {context.contractedRent.toLocaleString()}</span> — declared amount cannot be lower
+                </p>
+              )}
             </div>
 
             {!contextLoading && context && (
@@ -259,10 +274,11 @@ export default function AddDeclaration() {
               </button>
             </div>
           </form>
+          )}
         </div>
 
         {result && (
-          <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          <div id="declaration-result" className="bg-white rounded-xl shadow-sm p-6 space-y-4">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <TrendingUp size={18} className="text-accent" /> Declaration Analysis
             </h3>

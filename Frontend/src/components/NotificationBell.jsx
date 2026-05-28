@@ -37,8 +37,16 @@ function resolveNavPath(notification, userRole) {
     if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/appeals`;
   }
 
+  if (type === "DECLARATION_ANOMALY" || type === "DECLARATION_SUBMITTED") {
+    if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/declarations`;
+    return null;
+  }
+
+  if (type === "DECLARATION_VERIFIED") {
+    return `/landlord/contracts`;
+  }
+
   if (type === "PROPERTY_PENDING_REVIEW") {
-    // Officers navigate to the properties list to review the new submission
     if (userRole === "SUBCITY_STAFF" || userRole === "ADMINISTRATOR") return `/officer/properties`;
     return null;
   }

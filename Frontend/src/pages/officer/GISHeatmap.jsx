@@ -22,6 +22,35 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const PROPERTY_TYPES = ["APARTMENT", "VILLA", "CONDO", "HOUSE", "COMMERCIAL"];
 
+// Sub-city centroids matching AddisAbabaNeighborhoods.java on the backend
+const SUB_CITY_COORDINATES = {
+  "Bole":              { lat: 9.0054, lng: 38.7636 },
+  "Kirkos":            { lat: 8.9950, lng: 38.7550 },
+  "Yeka":              { lat: 9.0450, lng: 38.8100 },
+  "Arada":             { lat: 9.0350, lng: 38.7450 },
+  "Lideta":            { lat: 9.0200, lng: 38.7300 },
+  "Kolfe":             { lat: 8.9900, lng: 38.6900 },
+  "Kolfe Keranio":     { lat: 8.9900, lng: 38.6900 },
+  "Nifas Silk":        { lat: 8.9500, lng: 38.7400 },
+  "Nifas Silk-Lafto":  { lat: 8.9500, lng: 38.7400 },
+  "Akaky":             { lat: 8.8800, lng: 38.7800 },
+  "Akaky Kaliti":      { lat: 8.8800, lng: 38.7800 },
+  "Gulele":            { lat: 9.0500, lng: 38.7300 },
+  "Addis Ketema":      { lat: 9.0350, lng: 38.7300 },
+  "Piassa":            { lat: 9.0320, lng: 38.7469 },
+  "Merkato":           { lat: 9.0320, lng: 38.7200 },
+  "Megenagna":         { lat: 9.0192, lng: 38.7869 },
+  "CMC":               { lat: 8.9806, lng: 38.7578 },
+  "Gerji":             { lat: 9.0450, lng: 38.7950 },
+  "Kazanchis":         { lat: 9.0250, lng: 38.7600 },
+  "Sarbet":            { lat: 9.0100, lng: 38.7400 },
+  "Lebu":              { lat: 8.9500, lng: 38.7200 },
+  "Ayat":              { lat: 9.0417, lng: 38.8312 },
+};
+
+// Fallback: Addis Ababa city center (Meskel Square)
+const DEFAULT_CENTER = { lat: 9.0320, lng: 38.7469 };
+
 // Map center component to handle zoom/pan
 function MapUpdater({ center, zoom }) {
   const map = useMap();

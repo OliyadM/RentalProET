@@ -3,6 +3,8 @@ package com.rentalpro.model.dto.request;
 import com.rentalpro.model.enums.EntityType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +25,8 @@ public class ProfileUpdateRequest {
     @NotNull(message = "Residential address is required")
     private String residentialAddress;
 
-    @NotNull(message = "National ID number is required")
+    @NotNull(message = "National ID (FAN) number is required")
+    @Pattern(regexp = "\\d{16}", message = "FAN number must be exactly 16 digits")
     private String nationalIdNumber;
 
     private String nationalIdDocumentUrl;

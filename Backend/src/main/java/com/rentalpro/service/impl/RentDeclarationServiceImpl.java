@@ -6,14 +6,17 @@ import com.rentalpro.model.entity.RentDeclaration;
 import com.rentalpro.model.entity.RentalContract;
 import com.rentalpro.model.entity.User;
 import com.rentalpro.model.enums.PropertyType;
+import com.rentalpro.model.enums.NotificationType;
 import com.rentalpro.repository.RentDeclarationRepository;
 import com.rentalpro.repository.RentalContractRepository;
 import com.rentalpro.service.AdminService;
 import com.rentalpro.service.AuditLogService;
+import com.rentalpro.service.NotificationService;
 import com.rentalpro.service.RentAnalyzerService;
 import com.rentalpro.service.RentDeclarationService;
 import com.rentalpro.service.TaxCalculationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RentDeclarationServiceImpl implements RentDeclarationService {
@@ -32,6 +36,7 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
     private final AuditLogService auditLogService;
     private final AdminService adminService;
     private final TaxCalculationService taxCalculationService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -42,6 +47,17 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
 
         if (!contract.getLandlord().getId().equals(landlordId)) {
             throw new RuntimeException("Not authorized to declare rent for this contract");
+        }
+
+        // Guard: declared rent cannot be less than the contracted monthly rent.
+        // Under-declaring below the agreed amount is a tax evasion signal —
+        // the landlord cannot claim they received less than what the tenant
+        // is contractually obligated to pay.
+        if (declaredRent < contract.getMonthlyRent()) {
+            throw new RuntimeException(String.format(
+                "Declared rent (ETB %.2f) cannot be less than the contracted monthly rent (ETB %.2f). " +
+                "If the tenant paid less than agreed, please contact your officer.",
+                declaredRent, contract.getMonthlyRent()));
         }
 
         RentDeclaration declaration = RentDeclaration.builder()
@@ -57,6 +73,28 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
 
         auditLogService.logAction("CREATE_DECLARATION", "RentDeclaration", saved.getId(),
                 contract.getLandlord(), "Declared rent: " + declaredRent);
+
+        // Notify officers in the property's sub-city
+        String subCity = contract.getRentalUnit().getProperty().getSubCity();
+        if (subCity != null && !subCity.isBlank()) {
+            try {
+                String landlordName = contract.getLandlord().getFirstName() + " " + contract.getLandlord().getLastName();
+                String anomalyNote = analyzed.getIsAnomaly() ? " ⚠ Anomaly detected." : "";
+                String msg = String.format(
+                        "%s declared ETB %.0f for %s (period: %s).%s",
+                        landlordName, declaredRent,
+                        contract.getPropertyAddress(),
+                        period.toString(),
+                        anomalyNote);
+                notificationService.sendToSubCityOfficers(
+                        subCity,
+                        NotificationType.DECLARATION_SUBMITTED,
+                        msg,
+                        analyzed.getId());
+            } catch (Exception e) {
+                log.warn("Failed to notify officers of declaration {}: {}", analyzed.getId(), e.getMessage());
+            }
+        }
 
         return mapToResponse(analyzed);
     }
@@ -175,6 +213,23 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
 
         auditLogService.logAction("VERIFY_DECLARATION", "RentDeclaration", saved.getId(),
                 null, "Verified with notes: " + notes);
+
+        // Notify the landlord that their declaration has been verified
+        try {
+            RentalContract contract = saved.getContract();
+            String msg = String.format(
+                    "Your rent declaration of ETB %.0f for %s (period: %s) has been verified by an officer.",
+                    saved.getDeclaredRent(),
+                    contract.getPropertyAddress(),
+                    saved.getDeclarationPeriod().toString());
+            notificationService.send(
+                    contract.getLandlord().getId(),
+                    NotificationType.DECLARATION_VERIFIED,
+                    msg,
+                    saved.getId());
+        } catch (Exception e) {
+            log.warn("Failed to notify landlord of declaration verification {}: {}", saved.getId(), e.getMessage());
+        }
 
         return mapToResponse(saved);
     }

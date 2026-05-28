@@ -105,13 +105,13 @@ public class GISAnalyticsServiceImpl implements GISAnalyticsService {
             LocalDate startDate,
             LocalDate endDate) {
         
-        // Get all anomalous declarations
-        List<RentDeclaration> declarations = declarationRepository.findByIsAnomaly(true);
+        // Eagerly fetch the full property chain — avoids lazy-proxy EntityNotFoundException
+        List<RentDeclaration> declarations = declarationRepository.findAnomalousWithProperty();
         
         // Apply filters
         if (minSeverity != null) {
             declarations = declarations.stream()
-                .filter(d -> d.getAnomalyScore() >= minSeverity)
+                .filter(d -> d.getAnomalyScore() != null && d.getAnomalyScore() >= minSeverity)
                 .collect(Collectors.toList());
         }
         
@@ -133,7 +133,10 @@ public class GISAnalyticsServiceImpl implements GISAnalyticsService {
                 .collect(Collectors.toList());
         }
         
-        // Group by coordinates
+        // Pre-fetch all declarations once for total-count calculation — avoids N+1
+        List<RentDeclaration> allDeclarations = declarationRepository.findAllWithProperty();
+
+        // Group anomalous declarations by coordinates
         Map<String, List<RentDeclaration>> groupedByLocation = declarations.stream()
             .collect(Collectors.groupingBy(declaration -> {
                 Property property = declaration.getContract().getRentalUnit().getProperty();
@@ -146,10 +149,12 @@ public class GISAnalyticsServiceImpl implements GISAnalyticsService {
         return groupedByLocation.entrySet().stream()
             .map(entry -> {
                 String[] coords = entry.getKey().split(",");
+                double lat = Double.parseDouble(coords[0]);
+                double lng = Double.parseDouble(coords[1]);
                 List<RentDeclaration> locationDeclarations = entry.getValue();
                 
                 double avgSeverity = locationDeclarations.stream()
-                    .mapToDouble(RentDeclaration::getAnomalyScore)
+                    .mapToDouble(d -> d.getAnomalyScore() != null ? d.getAnomalyScore() : 0.0)
                     .average()
                     .orElse(0.0);
                 
@@ -157,20 +162,19 @@ public class GISAnalyticsServiceImpl implements GISAnalyticsService {
                     .getContract().getRentalUnit().getProperty();
                 boolean hasExactGPS = AddisAbabaNeighborhoods.hasExactGPS(firstProperty);
                 
-                // Get total declarations for this location (not just anomalies)
-                long totalDeclarations = declarationRepository.findAll().stream()
+                // Count total declarations at this coordinate using pre-fetched list
+                long totalDeclarations = allDeclarations.stream()
                     .filter(d -> {
-                        Property p = d.getContract().getRentalUnit().getProperty();
-                        AddisAbabaNeighborhoods.Coordinates c = 
-                            AddisAbabaNeighborhoods.getCoordinates(p);
-                        return c.getLatitude() == Double.parseDouble(coords[0]) &&
-                               c.getLongitude() == Double.parseDouble(coords[1]);
+                        AddisAbabaNeighborhoods.Coordinates c =
+                            AddisAbabaNeighborhoods.getCoordinates(
+                                d.getContract().getRentalUnit().getProperty());
+                        return c.getLatitude() == lat && c.getLongitude() == lng;
                     })
                     .count();
                 
                 return AnomalyConcentrationPoint.builder()
-                    .latitude(Double.parseDouble(coords[0]))
-                    .longitude(Double.parseDouble(coords[1]))
+                    .latitude(lat)
+                    .longitude(lng)
                     .subCity(firstProperty.getSubCity())
                     .anomalyCount((long) locationDeclarations.size())
                     .averageSeverity(avgSeverity)

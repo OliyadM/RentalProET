@@ -19,6 +19,31 @@ public interface RentDeclarationRepository extends JpaRepository<RentDeclaration
 
     List<RentDeclaration> findByIsVerified(Boolean isVerified);
 
+    /**
+     * Fetch anomalous declarations with the full association chain eagerly loaded
+     * to avoid LazyInitializationException and orphaned-proxy errors in GIS queries.
+     */
+    @Query("""
+        SELECT rd FROM RentDeclaration rd
+        JOIN FETCH rd.contract c
+        JOIN FETCH c.rentalUnit u
+        JOIN FETCH u.property p
+        WHERE rd.isAnomaly = true
+        """)
+    List<RentDeclaration> findAnomalousWithProperty();
+
+    /**
+     * Fetch all declarations with the full association chain eagerly loaded.
+     * Used by GIS total-declaration counts to avoid N+1 lazy loads.
+     */
+    @Query("""
+        SELECT rd FROM RentDeclaration rd
+        JOIN FETCH rd.contract c
+        JOIN FETCH c.rentalUnit u
+        JOIN FETCH u.property p
+        """)
+    List<RentDeclaration> findAllWithProperty();
+
     @Query("SELECT rd FROM RentDeclaration rd WHERE rd.contract.rentalUnit.property.subCity = :subCity")
     List<RentDeclaration> findBySubCity(@Param("subCity") String subCity);
 

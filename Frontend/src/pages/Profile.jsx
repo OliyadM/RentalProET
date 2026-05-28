@@ -96,9 +96,9 @@ export default function Profile() {
       errs.residentialAddress = "Please enter a full address (at least 10 characters)";
 
     if (!form.nationalIdNumber.trim())
-      errs.nationalIdNumber = "National ID number is required";
-    else if (form.nationalIdNumber.trim().length < 5)
-      errs.nationalIdNumber = "National ID number appears too short";
+      errs.nationalIdNumber = "National ID (FAN) number is required";
+    else if (!/^\d{16}$/.test(form.nationalIdNumber.trim()))
+      errs.nationalIdNumber = "FAN number must be exactly 16 digits";
 
     if (!form.tinNumber.trim())
       errs.tinNumber = "TIN number is required";
@@ -313,7 +313,7 @@ export default function Profile() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    National ID Number <span className="text-red-500">*</span>
+                    National ID Number (FAN) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -321,10 +321,16 @@ export default function Profile() {
                     value={form.nationalIdNumber}
                     onChange={handleChange}
                     disabled={!editing}
-                    placeholder="ET123456789"
+                    placeholder="1234567890123456"
+                    maxLength={16}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500
                       ${fieldErrors.nationalIdNumber ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                   />
+                  {editing && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      FAN (Fayyadamaa Abbaa Namaa) — must be exactly 16 digits
+                    </p>
+                  )}
                   <FieldError msg={fieldErrors.nationalIdNumber} />
                 </div>
                 <div>

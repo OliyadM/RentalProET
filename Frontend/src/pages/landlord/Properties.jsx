@@ -30,10 +30,18 @@ export default function LandlordProperties() {
           <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
           <p className="text-gray-500 text-sm mt-1">{properties.length} properties registered</p>
         </div>
-        <button onClick={() => navigate("/landlord/properties/add")}
-          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-900 transition">
-          <Plus size={16} /> Add Property
-        </button>
+        {user?.accountStatus === "VERIFIED" ? (
+          <button onClick={() => navigate("/landlord/properties/add")}
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-900 transition">
+            <Plus size={16} /> Add Property
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 bg-gray-100 text-gray-400 px-5 py-2.5 rounded-lg text-sm font-medium cursor-not-allowed"
+            title="Your account must be verified before you can add properties">
+            <Plus size={16} /> Add Property
+            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full ml-1">Unverified</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
