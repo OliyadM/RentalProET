@@ -7,6 +7,7 @@ import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import { contractsAPI, declarationsAPI, analyticsAPI } from "../../services/api";
 import { fmtDate } from "../../utils/dateUtils";
+import { openContractPrintView } from "../../utils/contractPdf";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
 function pct(a, b) { return (((a - b) / b) * 100).toFixed(1); }
@@ -119,14 +120,20 @@ export default function LandlordContractDetail() {
               </button>
             )}
             {contract.contractDocumentUrl ? (
-              <a href={contract.contractDocumentUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50">
-                <FileText size={15} /> View Contract PDF
-              </a>
+              <div className="flex gap-2">
+                <button onClick={() => openContractPrintView(contract)}
+                  className="flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50">
+                  <FileText size={15} /> View Contract
+                </button>
+                <a href={contract.contractDocumentUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
+                  <FileText size={15} /> Uploaded Document
+                </a>
+              </div>
             ) : (
-              <button onClick={() => { setToast("Contract PDF will be available after officer approval"); }}
-                className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
-                <FileText size={15} /> Contract PDF (Pending)
+              <button onClick={() => openContractPrintView(contract)}
+                className="flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50">
+                <FileText size={15} /> View Contract
               </button>
             )}
           </div>

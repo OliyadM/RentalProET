@@ -8,6 +8,7 @@ import Toast from "../../components/Toast";
 import Modal from "../../components/Modal";
 import { contractsAPI, declarationsAPI } from "../../services/api";
 import { fmtDate } from "../../utils/dateUtils";
+import { openContractPrintView } from "../../utils/contractPdf";
 
 function fmt(n) { return "ETB " + Number(n).toLocaleString(); }
 
@@ -139,16 +140,15 @@ export default function TenantContractDetail() {
           )}
           
           <div className="mt-4 flex gap-2">
-            {contract.contractDocumentUrl ? (
+            <button onClick={() => openContractPrintView(contract)}
+              className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-900">
+              <FileText size={14} /> View Contract
+            </button>
+            {contract.contractDocumentUrl && (
               <a href={contract.contractDocumentUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-900">
-                <FileText size={14} /> View Contract PDF
+                className="flex items-center gap-2 border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                <FileText size={14} /> Uploaded Document
               </a>
-            ) : (
-              <button onClick={() => setToast({ msg: "Contract PDF will be available after officer approval", type: "info" })}
-                className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-                <FileText size={14} /> Contract PDF (Pending)
-              </button>
             )}
           </div>
         </div>
