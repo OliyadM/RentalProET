@@ -41,6 +41,16 @@ public class RentDeclaration {
 
     private String anomalyReason;
 
+    // ── Enhanced benchmark metadata (price-per-m² algorithm) ─────────────────
+    private Double benchmarkPricePerM2;    // ETB/m² used as basis
+    private Double benchmarkLowerBound;    // lower bound in ETB
+    private Double benchmarkUpperBound;    // upper bound in ETB
+    private Integer benchmarkSampleSize;   // records in comparison group
+    private Integer benchmarkFallbackLevel; // 1–6, which fallback was used
+    private Double benchmarkStdDev;        // std dev of comparison group
+    private String anomalySeverity;        // LOW / MEDIUM / HIGH
+    private String anomalyDirection;       // UNDER_REPORTED / OVER_REPORTED
+
     private Boolean taxCompliant;
 
     /** Monthly estimated tax (Proclamation 1395/2025). */

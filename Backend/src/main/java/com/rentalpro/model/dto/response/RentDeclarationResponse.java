@@ -22,6 +22,15 @@ public class RentDeclarationResponse {
     private Double anomalyScore;
     private Boolean isAnomaly;
     private String anomalyReason;
+    // Enhanced benchmark metadata
+    private Double benchmarkPricePerM2;
+    private Double benchmarkLowerBound;
+    private Double benchmarkUpperBound;
+    private Integer benchmarkSampleSize;
+    private Integer benchmarkFallbackLevel;
+    private Double benchmarkStdDev;
+    private String anomalySeverity;
+    private String anomalyDirection;
     private Double estimatedTax;
     private Boolean claimDeduction;
     private Boolean deductionApplied;

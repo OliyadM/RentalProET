@@ -201,39 +201,48 @@ export default function LandlordContractDetail() {
                 <th className="px-6 py-3 text-left">Period</th>
                 <th className="px-6 py-3 text-left">Declared</th>
                 <th className="px-6 py-3 text-left">Benchmark</th>
-                <th className="px-6 py-3 text-left">Deviation</th>
+                <th className="px-6 py-3 text-left">Range</th>
                 <th className="px-6 py-3 text-left">Anomaly</th>
                 <th className="px-6 py-3 text-left">Tax</th>
                 <th className="px-6 py-3 text-left">Verified</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {declarations.map(d => {
-                const dev = pct(d.declaredRent, d.aiBenchmarkRent);
-                return (
-                  <tr key={d.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">{fmtDate(d.declarationPeriod)}</td>
-                    <td className="px-6 py-4 font-medium">{fmt(d.declaredRent)}</td>
-                    <td className="px-6 py-4 text-gray-500">{fmt(d.aiBenchmarkRent)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`font-medium ${Math.abs(dev) > 15 ? "text-danger" : Math.abs(dev) > 5 ? "text-accent" : "text-success"}`}>
-                        {dev > 0 ? "+" : ""}{dev}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {d.isAnomaly
-                        ? <span className="flex items-center gap-1 text-danger text-xs"><AlertTriangle size={12} /> Flagged</span>
-                        : <span className="text-success text-xs">Clean</span>}
-                    </td>
-                    <td className="px-6 py-4">{fmt(d.estimatedTax)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-medium ${d.isVerified ? "text-success" : "text-gray-400"}`}>
-                        {d.isVerified ? "Verified" : "Pending"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {declarations.map(d => (
+                <tr key={d.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">{fmtDate(d.declarationPeriod)}</td>
+                  <td className="px-6 py-4 font-medium">{fmt(d.declaredRent)}</td>
+                  <td className="px-6 py-4 text-gray-500">{fmt(d.aiBenchmarkRent)}</td>
+                  <td className="px-6 py-4 text-xs text-gray-400">
+                    {d.benchmarkLowerBound != null
+                      ? `${fmt(d.benchmarkLowerBound)} – ${fmt(d.benchmarkUpperBound)}`
+                      : "—"}
+                  </td>
+                  <td className="px-6 py-4">
+                    {d.isAnomaly ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="flex items-center gap-1 text-danger text-xs">
+                          <AlertTriangle size={12} />
+                          {d.anomalySeverity || "Flagged"}
+                        </span>
+                        {d.anomalyDirection && (
+                          <span className="text-xs text-gray-400">
+                            {d.anomalyDirection === "UNDER_REPORTED" ? "Under-reported" : "Over-reported"}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-success text-xs">Clean</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">{fmt(d.estimatedTax)}</td>
+                  <td className="px-6 py-4">
+                    <span className={`text-xs font-medium ${d.isVerified ? "text-success" : "text-gray-400"}`}>
+                      {d.isVerified ? "Verified" : "Pending"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
               {declarations.length === 0 && (
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">No declarations yet</td></tr>
               )}

@@ -282,42 +282,93 @@ export default function AddDeclaration() {
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <TrendingUp size={18} className="text-accent" /> Declaration Analysis
             </h3>
+
+            {/* Rent comparison */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Your Declared Rent</p>
                 <p className="font-bold text-gray-900 text-lg">{fmt(result.declaredRent)}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-primary mb-1">AI Benchmark</p>
+                <p className="text-xs text-primary mb-1">Benchmark Suggested</p>
                 <p className="font-bold text-primary text-lg">{fmt(result.aiBenchmarkRent)}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-              <span className="text-sm text-gray-600">Deviation from benchmark</span>
-              <span className={`text-lg font-bold ${Math.abs(deviation) > 15 ? "text-danger" : Math.abs(deviation) > 5 ? "text-accent" : "text-success"}`}>
-                {deviation > 0 ? "+" : ""}{deviation}%
-              </span>
-            </div>
+            {/* Benchmark range */}
+            {result.benchmarkLowerBound != null && (
+              <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                <p className="text-xs text-gray-500 mb-2">Expected Range</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">ETB {result.benchmarkLowerBound?.toLocaleString()}</span>
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full relative">
+                    {/* Marker for declared rent position */}
+                    {(() => {
+                      const lo = result.benchmarkLowerBound;
+                      const hi = result.benchmarkUpperBound;
+                      const val = result.declaredRent;
+                      const pct = Math.min(100, Math.max(0, ((val - lo) / (hi - lo)) * 100));
+                      const inRange = val >= lo && val <= hi;
+                      return (
+                        <div
+                          className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white ${inRange ? "bg-success" : "bg-danger"}`}
+                          style={{ left: `${pct}%`, transform: "translate(-50%, -50%)" }}
+                          title={`Your rent: ETB ${val?.toLocaleString()}`}
+                        />
+                      );
+                    })()}
+                  </div>
+                  <span className="text-gray-600">ETB {result.benchmarkUpperBound?.toLocaleString()}</span>
+                </div>
+                {result.benchmarkPricePerM2 != null && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Market rate: ETB {result.benchmarkPricePerM2?.toFixed(0)}/m²
+                    {result.benchmarkSampleSize != null && ` · Based on ${result.benchmarkSampleSize} comparable properties`}
+                    {result.benchmarkFallbackLevel != null && result.benchmarkFallbackLevel > 1 && (
+                      <span className="text-yellow-600"> (Level {result.benchmarkFallbackLevel} match — lower confidence)</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
 
+            {/* Anomaly result */}
             <div className={`flex items-start gap-3 p-4 rounded-lg ${result.isAnomaly ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}>
               {result.isAnomaly
                 ? <AlertTriangle size={18} className="text-danger mt-0.5 flex-shrink-0" />
                 : <CheckCircle size={18} className="text-success mt-0.5 flex-shrink-0" />}
-              <div>
-                <p className={`font-semibold text-sm ${result.isAnomaly ? "text-danger" : "text-success"}`}>
-                  {result.isAnomaly ? "Anomaly Detected" : "No Anomaly Detected"}
-                </p>
-                {result.anomalyReason && <p className="text-xs mt-0.5 text-gray-600">{result.anomalyReason}</p>}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className={`font-semibold text-sm ${result.isAnomaly ? "text-danger" : "text-success"}`}>
+                    {result.isAnomaly ? "Anomaly Detected" : "No Anomaly Detected"}
+                  </p>
+                  {result.anomalySeverity && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      result.anomalySeverity === "HIGH"   ? "bg-red-100 text-red-700" :
+                      result.anomalySeverity === "MEDIUM" ? "bg-orange-100 text-orange-700" :
+                                                            "bg-yellow-100 text-yellow-700"}`}>
+                      {result.anomalySeverity}
+                    </span>
+                  )}
+                  {result.anomalyDirection && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                      {result.anomalyDirection === "UNDER_REPORTED" ? "Under-reported" : "Over-reported"}
+                    </span>
+                  )}
+                </div>
+                {result.anomalyReason && (
+                  <p className="text-xs mt-1 text-gray-600">{result.anomalyReason}</p>
+                )}
               </div>
             </div>
 
+            {/* Tax summary */}
             <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-              <span className="text-sm text-gray-700">Estimated Tax</span>
+              <span className="text-sm text-gray-700">Estimated Monthly Tax</span>
               <span className="font-bold text-primary">{fmt(result.estimatedTax)}</span>
             </div>
 
-            {(result.annualTax !== null && result.annualTax !== undefined) && (
+            {result.annualTax != null && (
               <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-lg p-3">
                 <div>
                   <p className="text-xs text-gray-500">Annual Tax</p>
@@ -325,9 +376,7 @@ export default function AddDeclaration() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Effective Rate</p>
-                  <p className="font-semibold text-gray-800">
-                    {((result.effectiveTaxRate || 0) * 100).toFixed(2)}%
-                  </p>
+                  <p className="font-semibold text-gray-800">{((result.effectiveTaxRate || 0) * 100).toFixed(2)}%</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Tax Rule</p>
@@ -346,7 +395,7 @@ export default function AddDeclaration() {
               </p>
             )}
 
-            <p className="text-xs text-gray-400 text-center">Declaration saved. AI analysis is advisory only.</p>
+            <p className="text-xs text-gray-400 text-center">Declaration saved. Analysis is advisory only.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button

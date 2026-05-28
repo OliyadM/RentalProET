@@ -4,6 +4,8 @@ import com.rentalpro.model.dto.response.RentDeclarationResponse;
 import com.rentalpro.model.dto.response.TaxCalculationResponse;
 import com.rentalpro.model.entity.RentDeclaration;
 import com.rentalpro.model.entity.RentalContract;
+import com.rentalpro.model.entity.RentalUnit;
+import com.rentalpro.model.entity.Property;
 import com.rentalpro.model.entity.User;
 import com.rentalpro.model.enums.PropertyType;
 import com.rentalpro.model.enums.NotificationType;
@@ -105,33 +107,77 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
         RentDeclaration declaration = declarationRepository.findById(declarationId)
                 .orElseThrow(() -> new RuntimeException("Declaration not found"));
 
-        var benchmark = analyzerService.calculateFairRent(
-                declaration.getContract().getRentalUnit().getProperty().getId()
-        );
+        RentalContract contract = declaration.getContract();
+        RentalUnit unit         = contract.getRentalUnit();
+        Property property       = unit.getProperty();
 
-        double declaredRent = declaration.getDeclaredRent();
+        // Use unit-aware benchmark (price-per-m² algorithm)
+        var benchmark = analyzerService.calculateFairRent(property.getId(), unit.getId());
+
+        double declaredRent  = declaration.getDeclaredRent();
         double suggestedRent = benchmark.getSuggestedRent();
-        double deviation = Math.abs(declaredRent - suggestedRent) / suggestedRent;
+        double lowerBound    = benchmark.getMinRent();
+        double upperBound    = benchmark.getMaxRent();
 
-        double anomalyThreshold = adminService.getConfigEntity().getAnomalyThresholdPercentage();
-        boolean isAnomaly = deviation > anomalyThreshold;
-        double anomalyScore = Math.min(deviation / (anomalyThreshold * 2), 1.0);
+        // Determine anomaly using the benchmark range (not a fixed threshold)
+        boolean isAnomaly;
+        String  direction = null;
+        double  deviation = 0;
 
-        String reason = null;
-        if (isAnomaly) {
-            if (declaredRent < suggestedRent * (1 - anomalyThreshold)) {
-                reason = String.format("Declared rent (%.2f) is %.1f%% below AI benchmark (%.2f). Possible under-declaration.",
-                        declaredRent, deviation * 100, suggestedRent);
-            } else if (declaredRent > suggestedRent * (1 + anomalyThreshold)) {
-                reason = String.format("Declared rent (%.2f) is %.1f%% above AI benchmark (%.2f). Verify luxury features.",
-                        declaredRent, deviation * 100, suggestedRent);
-            }
+        if (declaredRent < lowerBound) {
+            isAnomaly = true;
+            direction = "UNDER_REPORTED";
+            deviation = (suggestedRent - declaredRent) / suggestedRent;
+        } else if (declaredRent > upperBound) {
+            isAnomaly = true;
+            direction = "OVER_REPORTED";
+            deviation = (declaredRent - suggestedRent) / suggestedRent;
+        } else {
+            isAnomaly = false;
+            deviation = Math.abs(declaredRent - suggestedRent) / suggestedRent;
         }
 
+        // Severity bands
+        String severity = null;
+        if (isAnomaly) {
+            double pct = deviation * 100;
+            severity = pct < 25 ? "LOW" : pct < 50 ? "MEDIUM" : "HIGH";
+        }
+
+        // anomalyScore kept as 0–1 for backward compatibility
+        double anomalyThreshold = adminService.getConfigEntity().getAnomalyThresholdPercentage();
+        double anomalyScore = Math.min(deviation / (anomalyThreshold * 2), 1.0);
+
+        // Human-readable reason
+        String reason = null;
+        if (isAnomaly) {
+            reason = String.format(
+                    "Declared rent ETB %.0f is %.1f%% %s the expected range of ETB %.0f–%.0f " +
+                    "for comparable properties in %s (based on %d records, Level %d match). " +
+                    "Severity: %s.",
+                    declaredRent,
+                    deviation * 100,
+                    "UNDER_REPORTED".equals(direction) ? "below" : "above",
+                    lowerBound, upperBound,
+                    property.getSubCity(),
+                    benchmark.getSampleSize() != null ? benchmark.getSampleSize() : 0,
+                    benchmark.getFallbackLevel() != null ? benchmark.getFallbackLevel() : 6,
+                    severity);
+        }
+
+        // Store all benchmark metadata
         declaration.setAiBenchmarkRent(suggestedRent);
         declaration.setAnomalyScore(anomalyScore);
         declaration.setIsAnomaly(isAnomaly);
         declaration.setAnomalyReason(reason);
+        declaration.setBenchmarkPricePerM2(benchmark.getPricePerSqm());
+        declaration.setBenchmarkLowerBound(lowerBound);
+        declaration.setBenchmarkUpperBound(upperBound);
+        declaration.setBenchmarkSampleSize(benchmark.getSampleSize());
+        declaration.setBenchmarkFallbackLevel(benchmark.getFallbackLevel());
+        declaration.setBenchmarkStdDev(benchmark.getStdDev());
+        declaration.setAnomalySeverity(severity);
+        declaration.setAnomalyDirection(direction);
 
         applyTaxCalculation(declaration);
 
@@ -257,6 +303,14 @@ public class RentDeclarationServiceImpl implements RentDeclarationService {
                 .anomalyScore(d.getAnomalyScore())
                 .isAnomaly(d.getIsAnomaly())
                 .anomalyReason(d.getAnomalyReason())
+                .benchmarkPricePerM2(d.getBenchmarkPricePerM2())
+                .benchmarkLowerBound(d.getBenchmarkLowerBound())
+                .benchmarkUpperBound(d.getBenchmarkUpperBound())
+                .benchmarkSampleSize(d.getBenchmarkSampleSize())
+                .benchmarkFallbackLevel(d.getBenchmarkFallbackLevel())
+                .benchmarkStdDev(d.getBenchmarkStdDev())
+                .anomalySeverity(d.getAnomalySeverity())
+                .anomalyDirection(d.getAnomalyDirection())
                 .estimatedTax(d.getEstimatedTax())
                 .claimDeduction(d.getClaimDeduction())
                 .deductionApplied(d.getDeductionApplied())

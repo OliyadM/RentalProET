@@ -49,4 +49,36 @@ public interface RentDeclarationRepository extends JpaRepository<RentDeclaration
 
     @Query("SELECT AVG(rd.declaredRent) FROM RentDeclaration rd WHERE rd.contract.rentalUnit.property.subCity = :subCity AND rd.declarationPeriod = :period")
     Double calculateAverageRentBySubCityAndPeriod(@Param("subCity") String subCity, @Param("period") LocalDate period);
+
+    /**
+     * Core price-per-m² query for the benchmark algorithm.
+     * Returns individual price-per-m² values (not the average) so the caller
+     * can compute both mean and standard deviation in Java.
+     * Only includes declarations where floorArea > 0 to avoid division by zero.
+     */
+    @Query("""
+        SELECT rd.declaredRent / u.floorArea
+        FROM RentDeclaration rd
+        JOIN rd.contract c
+        JOIN c.rentalUnit u
+        JOIN u.property p
+        WHERE u.floorArea IS NOT NULL
+          AND u.floorArea > 0
+          AND (:subCity IS NULL OR p.subCity = :subCity)
+          AND (:siteDesignation IS NULL OR p.siteDesignation = :siteDesignation)
+          AND (:propertyType IS NULL OR p.propertyType = :propertyType)
+          AND (:ageBracket IS NULL OR
+               (:ageBracket = 'NEW'    AND (YEAR(CURRENT_DATE) - p.yearBuilt) < 5)  OR
+               (:ageBracket = 'MEDIUM' AND (YEAR(CURRENT_DATE) - p.yearBuilt) BETWEEN 5 AND 20) OR
+               (:ageBracket = 'OLD'    AND (YEAR(CURRENT_DATE) - p.yearBuilt) > 20))
+          AND (:sizeBandMin IS NULL OR u.floorArea >= :sizeBandMin)
+          AND (:sizeBandMax IS NULL OR u.floorArea <= :sizeBandMax)
+        """)
+    List<Double> findPricePerSqmValues(
+            @Param("subCity")          String subCity,
+            @Param("siteDesignation")  String siteDesignation,
+            @Param("propertyType")     com.rentalpro.model.enums.PropertyType propertyType,
+            @Param("ageBracket")       String ageBracket,
+            @Param("sizeBandMin")      Double sizeBandMin,
+            @Param("sizeBandMax")      Double sizeBandMax);
 }
