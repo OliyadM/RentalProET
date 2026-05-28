@@ -18,6 +18,7 @@ import com.rentalpro.service.RentalContractService;
 import com.rentalpro.service.AdminService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -225,7 +227,7 @@ public class RentalContractServiceImpl implements RentalContractService {
         contract.setTenantSignature(signature);
         contract.setTenantConfirmedAt(LocalDateTime.now());
 
-        RentalContract saved = contractRepository.save(contract);
+        RentalContract saved = contractRepository.saveAndFlush(contract);
         logAction("CONFIRM_CONTRACT", "RentalContract", saved.getId(), tenantId, "Tenant confirmed contract - pending officer review");
 
         // Notify the landlord that tenant has signed
@@ -238,6 +240,27 @@ public class RentalContractServiceImpl implements RentalContractService {
                 NotificationType.CONTRACT_CONFIRMED,
                 landlordMsg,
                 saved.getId());
+
+        // Notify officers in the property's sub-city that a contract needs their review
+        String subCity = saved.getRentalUnit().getProperty().getSubCity();
+        if (subCity != null && !subCity.isBlank()) {
+            try {
+                String officerMsg = String.format(
+                        "Contract for %s (Landlord: %s, Tenant: %s, Rent: ETB %.0f) has been signed and requires officer review.",
+                        saved.getPropertyAddress(),
+                        saved.getLandlord().getFirstName() + " " + saved.getLandlord().getLastName(),
+                        tenantFullName,
+                        saved.getMonthlyRent());
+                notificationService.sendToSubCityOfficers(
+                        subCity,
+                        NotificationType.CONTRACT_SUBMITTED,
+                        officerMsg,
+                        saved.getId());
+            } catch (Exception e) {
+                // Notification failure must never block contract confirmation
+                log.warn("Failed to notify officers of pending contract {}: {}", saved.getId(), e.getMessage());
+            }
+        }
 
         return mapToResponse(saved);
     }
